@@ -89,7 +89,7 @@ If no log types are specified, all available log types will be retrieved.`,
 			}
 		}
 
-		client, err := aws.NewEKSLogsClient(region)
+		client, err := aws.NewEKSLogsClient(region, verbose)
 		if err != nil {
 			return fmt.Errorf("failed to create client: %w", err)
 		}

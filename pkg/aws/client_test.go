@@ -55,6 +55,7 @@ func TestListClusters(t *testing.T) {
 				}, nil
 			},
 		},
+		verbose: false,
 	}
 
 	clusters, err := client.ListClusters(context.TODO())
@@ -79,6 +80,7 @@ func TestGetClusterInfo(t *testing.T) {
 				}, nil
 			},
 		},
+		verbose: false,
 	}
 
 	info, err := client.GetClusterInfo(context.TODO(), "test-cluster")
@@ -105,6 +107,7 @@ func TestGetLogGroups(t *testing.T) {
 
 	client := &EKSLogsClient{
 		logsClient: mockLogsClient,
+		verbose: false,
 	}
 
 	logGroups, err := client.GetLogGroups(context.TODO(), "my-cluster")
@@ -151,6 +154,7 @@ func TestGetLogs(t *testing.T) {
 
 	client := &EKSLogsClient{
 		logsClient: mockLogsClient,
+		verbose: false,
 	}
 
 	var receivedLogs []log.LogEntry
@@ -202,6 +206,7 @@ func TestTailLogs(t *testing.T) {
 
 	client := &EKSLogsClient{
 		logsClient: mockLogsClient,
+		verbose: false,
 	}
 
 	ctx, cancel := context.WithTimeout(context.Background(), 2*time.Second) // Run for a short duration
@@ -290,6 +295,7 @@ func TestGetLogsWithPagination(t *testing.T) {
 
 	client := &EKSLogsClient{
 		logsClient: mockLogsClient,
+		verbose: false,
 	}
 
 	var receivedLogs []log.LogEntry
@@ -373,6 +379,7 @@ func TestGetLogsWithLimit(t *testing.T) {
 
 	client := &EKSLogsClient{
 		logsClient: mockLogsClient,
+		verbose: false,
 	}
 
 	// Test with a limit of 3 logs
@@ -440,6 +447,7 @@ func TestGetLogsWithTimeRange(t *testing.T) {
 
 	client := &EKSLogsClient{
 		logsClient: mockLogsClient,
+		verbose: false,
 	}
 
 	var receivedLogs []log.LogEntry

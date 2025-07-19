@@ -35,9 +35,10 @@ type EKSLogsClient struct {
 	logsClient CloudWatchLogsAPI
 	eksClient  EKSAPI
 	region     string
+	verbose    bool
 }
 
-func NewEKSLogsClient(region string) (*EKSLogsClient, error) {
+func NewEKSLogsClient(region string, verbose bool) (*EKSLogsClient, error) {
 	cfg, err := config.LoadDefaultConfig(context.TODO(),
 		config.WithRegion(region),
 	)
@@ -49,6 +50,7 @@ func NewEKSLogsClient(region string) (*EKSLogsClient, error) {
 		logsClient: cloudwatchlogs.NewFromConfig(cfg),
 		eksClient:  eks.NewFromConfig(cfg),
 		region:     region,
+		verbose:    verbose,
 	}, nil
 }
 
@@ -209,6 +211,13 @@ func (c *EKSLogsClient) GetLogs(ctx context.Context, clusterName string, logType
 			pageSize := int32(1000)
 			input.Limit = aws.Int32(pageSize)
 			
+			if c.verbose {
+				fmt.Printf("Retrieving logs from %s\n", lg)
+				fmt.Printf("Start time: %v\n", startTime)
+				fmt.Printf("End time: %v\n", endTime)
+				fmt.Printf("Limit: %d\n", limit)
+			}
+			
 			for {
 				pageCount++
 				if nextToken != nil {
@@ -219,6 +228,11 @@ func (c *EKSLogsClient) GetLogs(ctx context.Context, clusterName string, logType
 				if err != nil {
 					errChan <- fmt.Errorf("warning: failed to get logs from log group '%s': %v", lg, err)
 					return
+				}
+
+				if c.verbose {
+					fmt.Printf("Page %d, Events in response: %d, HasNextToken: %v\n", 
+						pageCount, len(resp.Events), resp.NextToken != nil)
 				}
 
 				eventsProcessed := 0
@@ -356,6 +370,11 @@ func (c *EKSLogsClient) TailLogs(ctx context.Context, clusterName string, logTyp
 	}
 
 	lastTimestamp := time.Now().Add(-1 * time.Minute) // Start from 1 minute ago
+	
+	if c.verbose {
+		fmt.Printf("Starting tail mode with interval: %v\n", interval)
+		fmt.Printf("Initial start time: %v\n", lastTimestamp)
+	}
 
 	ticker := time.NewTicker(interval)
 	defer ticker.Stop()
