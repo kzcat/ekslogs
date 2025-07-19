@@ -19,13 +19,13 @@ func TestPresetsData(t *testing.T) {
 	// Verify that presets data is available
 	presets := filter.ListUnifiedPresets()
 	assert.NotEmpty(t, presets)
-	
+
 	// Check specific presets
 	preset, exists := filter.GetUnifiedPreset("api-errors")
 	assert.True(t, exists)
 	assert.Equal(t, "ERROR", preset.Pattern)
 	assert.Equal(t, []string{"api"}, preset.LogTypes)
-	
+
 	preset, exists = filter.GetUnifiedPreset("auth-failures")
 	assert.True(t, exists)
 	assert.Equal(t, "unauthorized", preset.Pattern)

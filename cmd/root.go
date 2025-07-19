@@ -18,21 +18,21 @@ import (
 )
 
 var (
-	version       = "dev"
-	commit        = "none"
-	date          = "unknown"
-	clusterName   string
-	region        string
-	logTypes      []string
-	startTime     string
-	endTime       string
-	filterPattern string
-	presetName    string
-	limit         int32
+	version        = "dev"
+	commit         = "none"
+	date           = "unknown"
+	clusterName    string
+	region         string
+	logTypes       []string
+	startTime      string
+	endTime        string
+	filterPattern  string
+	presetName     string
+	limit          int32
 	limitSpecified bool // 制限が明示的に指定されたかどうか
-	verbose       bool
-	follow        bool
-	interval      time.Duration
+	verbose        bool
+	follow         bool
+	interval       time.Duration
 )
 
 var rootCmd = &cobra.Command{
@@ -222,7 +222,7 @@ func init() {
 	rootCmd.Flags().BoolVarP(&follow, "follow", "F", false, "Continuously monitor logs (tail mode)")
 	rootCmd.Flags().DurationVar(&interval, "interval", 1*time.Second, "Update interval for tail mode")
 	rootCmd.Flags().BoolP("message-only", "m", false, "Output only the log message")
-	
+
 	// フラグが指定されたかどうかを確認するためのPreRunを追加
 	rootCmd.PreRun = func(cmd *cobra.Command, args []string) {
 		limitSpecified = cmd.Flags().Changed("limit")

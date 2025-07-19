@@ -9,24 +9,24 @@ import (
 
 func TestGetUnifiedPreset(t *testing.T) {
 	tests := []struct {
-		name          string
-		presetName    string
-		expectExists  bool
-		expectPattern string
+		name           string
+		presetName     string
+		expectExists   bool
+		expectPattern  string
 		expectLogTypes []string
 	}{
 		{
-			name:          "existing preset",
-			presetName:    "api-errors",
-			expectExists:  true,
-			expectPattern: "ERROR",
+			name:           "existing preset",
+			presetName:     "api-errors",
+			expectExists:   true,
+			expectPattern:  "ERROR",
 			expectLogTypes: []string{"api"},
 		},
 		{
-			name:          "non-existing preset",
-			presetName:    "non-existing",
-			expectExists:  false,
-			expectPattern: "",
+			name:           "non-existing preset",
+			presetName:     "non-existing",
+			expectExists:   false,
+			expectPattern:  "",
 			expectLogTypes: nil,
 		},
 	}
@@ -46,11 +46,11 @@ func TestGetUnifiedPreset(t *testing.T) {
 func TestListUnifiedPresets(t *testing.T) {
 	presets := ListUnifiedPresets()
 	assert.NotEmpty(t, presets)
-	
+
 	// Check that all defined presets are returned
 	expectedCount := len(UnifiedPresets)
 	assert.Equal(t, expectedCount, len(presets))
-	
+
 	// Check that the list contains expected preset names
 	sort.Strings(presets)
 	assert.Contains(t, presets, "api-errors")
@@ -61,7 +61,7 @@ func TestListUnifiedPresets(t *testing.T) {
 func TestListBasicPresets(t *testing.T) {
 	presets := ListBasicPresets()
 	assert.NotEmpty(t, presets)
-	
+
 	// Check that only basic presets are returned
 	for _, name := range presets {
 		preset, exists := GetUnifiedPreset(name)
@@ -73,7 +73,7 @@ func TestListBasicPresets(t *testing.T) {
 func TestListAdvancedPresets(t *testing.T) {
 	presets := ListAdvancedPresets()
 	assert.NotEmpty(t, presets)
-	
+
 	// Check that only advanced presets are returned
 	for _, name := range presets {
 		preset, exists := GetUnifiedPreset(name)

@@ -185,10 +185,10 @@ func TestExtractLogLevel(t *testing.T) {
 
 func TestPrintLog(t *testing.T) {
 	tests := []struct {
-		name       string
-		logEntry   LogEntry
+		name        string
+		logEntry    LogEntry
 		messageOnly bool
-		wantOutput string
+		wantOutput  string
 	}{
 		{
 			name: "standard output",

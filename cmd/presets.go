@@ -21,7 +21,7 @@ var unifiedPresetsCmd = &cobra.Command{
 	Long:  `List all available filter presets for common use cases.`,
 	Run: func(cmd *cobra.Command, args []string) {
 		var presetNames []string
-		
+
 		if showAll {
 			presetNames = filter.ListUnifiedPresets()
 		} else if showAdvanced {
@@ -29,10 +29,10 @@ var unifiedPresetsCmd = &cobra.Command{
 		} else {
 			presetNames = filter.ListBasicPresets()
 		}
-		
+
 		// Sort preset names for consistent output
 		sort.Strings(presetNames)
-		
+
 		if showAdvanced {
 			fmt.Println("Available advanced filter presets:")
 		} else if showAll {
@@ -44,7 +44,7 @@ var unifiedPresetsCmd = &cobra.Command{
 
 		for _, name := range presetNames {
 			preset, _ := filter.GetUnifiedPreset(name)
-			
+
 			// Print preset name and description
 			if preset.Advanced {
 				color.New(color.FgMagenta, color.Bold).Printf("  %s\n", name)
@@ -54,7 +54,7 @@ var unifiedPresetsCmd = &cobra.Command{
 			fmt.Printf("    Description: %s\n", preset.Description)
 			fmt.Printf("    Log types: %s\n", strings.Join(preset.LogTypes, ", "))
 			fmt.Printf("    Pattern: %s\n", preset.Pattern)
-			
+
 			if showAll || showAdvanced {
 				fmt.Printf("    Pattern type: %s\n", preset.PatternType)
 			}
@@ -65,7 +65,7 @@ var unifiedPresetsCmd = &cobra.Command{
 		fmt.Println("  ekslogs my-cluster -p api-errors")
 		fmt.Println("  ekslogs my-cluster -p network-timeouts -F")
 		fmt.Println()
-		
+
 		if showAll || showAdvanced {
 			fmt.Println("Pattern types:")
 			fmt.Println("  - simple: Multiple terms (AND condition)")
@@ -75,7 +75,7 @@ var unifiedPresetsCmd = &cobra.Command{
 			fmt.Println("  - regex: Regular expression pattern (enclosed in %)")
 			fmt.Println()
 		}
-		
+
 		if !showAdvanced && !showAll {
 			fmt.Println("To see advanced presets, run: ekslogs presets --advanced")
 			fmt.Println("To see all presets, run: ekslogs presets --all")

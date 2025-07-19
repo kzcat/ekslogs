@@ -68,7 +68,7 @@ var UnifiedPresets = map[string]UnifiedPresetFilter{
 		PatternType: "simple",
 		Advanced:    false,
 	},
-	
+
 	// Advanced presets (complex patterns)
 	"auth-issues-adv": {
 		Description: "Authentication and authorization issues (advanced)",

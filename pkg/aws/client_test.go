@@ -107,7 +107,7 @@ func TestGetLogGroups(t *testing.T) {
 
 	client := &EKSLogsClient{
 		logsClient: mockLogsClient,
-		verbose: false,
+		verbose:    false,
 	}
 
 	logGroups, err := client.GetLogGroups(context.TODO(), "my-cluster")
@@ -154,7 +154,7 @@ func TestGetLogs(t *testing.T) {
 
 	client := &EKSLogsClient{
 		logsClient: mockLogsClient,
-		verbose: false,
+		verbose:    false,
 	}
 
 	var receivedLogs []log.LogEntry
@@ -206,7 +206,7 @@ func TestTailLogs(t *testing.T) {
 
 	client := &EKSLogsClient{
 		logsClient: mockLogsClient,
-		verbose: false,
+		verbose:    false,
 	}
 
 	ctx, cancel := context.WithTimeout(context.Background(), 2*time.Second) // Run for a short duration
@@ -240,7 +240,7 @@ func TestGetLogsWithPagination(t *testing.T) {
 		},
 		FilterLogEventsFunc: func(ctx context.Context, params *cloudwatchlogs.FilterLogEventsInput, optFns ...func(*cloudwatchlogs.Options)) (*cloudwatchlogs.FilterLogEventsOutput, error) {
 			filterLogEventsCallCount++
-			
+
 			// First page has events and a next token
 			if filterLogEventsCallCount == 1 {
 				return &cloudwatchlogs.FilterLogEventsOutput{
@@ -259,7 +259,7 @@ func TestGetLogsWithPagination(t *testing.T) {
 					NextToken: aws.String("next-token-1"),
 				}, nil
 			}
-			
+
 			// Second page has events and a next token
 			if filterLogEventsCallCount == 2 {
 				return &cloudwatchlogs.FilterLogEventsOutput{
@@ -278,7 +278,7 @@ func TestGetLogsWithPagination(t *testing.T) {
 					NextToken: aws.String("next-token-2"),
 				}, nil
 			}
-			
+
 			// Third page has events but no next token (last page)
 			return &cloudwatchlogs.FilterLogEventsOutput{
 				Events: []types.FilteredLogEvent{
@@ -295,7 +295,7 @@ func TestGetLogsWithPagination(t *testing.T) {
 
 	client := &EKSLogsClient{
 		logsClient: mockLogsClient,
-		verbose: false,
+		verbose:    false,
 	}
 
 	var receivedLogs []log.LogEntry
@@ -313,7 +313,7 @@ func TestGetLogsWithPagination(t *testing.T) {
 	if len(receivedLogs) != 5 {
 		t.Errorf("expected 5 log entries, got %d", len(receivedLogs))
 	}
-	
+
 	// Verify that FilterLogEvents was called 3 times (for all 3 pages)
 	if filterLogEventsCallCount != 3 {
 		t.Errorf("expected FilterLogEvents to be called 3 times, got %d", filterLogEventsCallCount)
@@ -342,7 +342,7 @@ func TestGetLogsWithLimit(t *testing.T) {
 		},
 		FilterLogEventsFunc: func(ctx context.Context, params *cloudwatchlogs.FilterLogEventsInput, optFns ...func(*cloudwatchlogs.Options)) (*cloudwatchlogs.FilterLogEventsOutput, error) {
 			filterLogEventsCallCount++
-			
+
 			// First page has many events
 			return &cloudwatchlogs.FilterLogEventsOutput{
 				Events: []types.FilteredLogEvent{
@@ -379,7 +379,7 @@ func TestGetLogsWithLimit(t *testing.T) {
 
 	client := &EKSLogsClient{
 		logsClient: mockLogsClient,
-		verbose: false,
+		verbose:    false,
 	}
 
 	// Test with a limit of 3 logs
@@ -397,7 +397,7 @@ func TestGetLogsWithLimit(t *testing.T) {
 	if len(receivedLogs) != 3 {
 		t.Errorf("expected 3 log entries, got %d", len(receivedLogs))
 	}
-	
+
 	// Verify that FilterLogEvents was called only once
 	// (we don't need to fetch more pages after reaching the limit)
 	if filterLogEventsCallCount != 1 {
@@ -432,7 +432,7 @@ func TestGetLogsWithTimeRange(t *testing.T) {
 			if params.EndTime == nil {
 				t.Errorf("expected EndTime to be set")
 			}
-			
+
 			return &cloudwatchlogs.FilterLogEventsOutput{
 				Events: []types.FilteredLogEvent{
 					{
@@ -447,7 +447,7 @@ func TestGetLogsWithTimeRange(t *testing.T) {
 
 	client := &EKSLogsClient{
 		logsClient: mockLogsClient,
-		verbose: false,
+		verbose:    false,
 	}
 
 	var receivedLogs []log.LogEntry

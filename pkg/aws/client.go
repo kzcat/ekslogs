@@ -206,18 +206,18 @@ func (c *EKSLogsClient) GetLogs(ctx context.Context, clusterName string, logType
 			var nextToken *string
 			var totalEvents int32 = 0
 			var pageCount int = 0
-			
+
 			// Set a reasonable page size for each API call
 			pageSize := int32(1000)
 			input.Limit = aws.Int32(pageSize)
-			
+
 			if c.verbose {
 				fmt.Printf("Retrieving logs from %s\n", lg)
 				fmt.Printf("Start time: %v\n", startTime)
 				fmt.Printf("End time: %v\n", endTime)
 				fmt.Printf("Limit: %d\n", limit)
 			}
-			
+
 			for {
 				pageCount++
 				if nextToken != nil {
@@ -231,7 +231,7 @@ func (c *EKSLogsClient) GetLogs(ctx context.Context, clusterName string, logType
 				}
 
 				if c.verbose {
-					fmt.Printf("Page %d, Events in response: %d, HasNextToken: %v\n", 
+					fmt.Printf("Page %d, Events in response: %d, HasNextToken: %v\n",
 						pageCount, len(resp.Events), resp.NextToken != nil)
 				}
 
@@ -243,7 +243,7 @@ func (c *EKSLogsClient) GetLogs(ctx context.Context, clusterName string, logType
 						if limit > 0 && totalEvents >= limit {
 							break
 						}
-						
+
 						entry := log.LogEntry{
 							Timestamp: time.UnixMilli(*event.Timestamp),
 							Level:     log.ExtractLogLevel(*event.Message),
@@ -253,13 +253,13 @@ func (c *EKSLogsClient) GetLogs(ctx context.Context, clusterName string, logType
 							LogStream: *event.LogStreamName,
 						}
 						printFunc(entry) // Call the print function directly
-						
+
 						// Increment the counters
 						totalEvents++
 						eventsProcessed++
 					}
 				}
-				
+
 				// Check if we've reached the overall limit (limit=0 means unlimited)
 				if limit > 0 && totalEvents >= limit {
 					break
@@ -269,7 +269,7 @@ func (c *EKSLogsClient) GetLogs(ctx context.Context, clusterName string, logType
 				if resp.NextToken == nil || len(resp.Events) == 0 {
 					break
 				}
-				
+
 				// Otherwise, continue with the next page
 				nextToken = resp.NextToken
 			}
@@ -370,7 +370,7 @@ func (c *EKSLogsClient) TailLogs(ctx context.Context, clusterName string, logTyp
 	}
 
 	lastTimestamp := time.Now().Add(-1 * time.Minute) // Start from 1 minute ago
-	
+
 	if c.verbose {
 		fmt.Printf("Starting tail mode with interval: %v\n", interval)
 		fmt.Printf("Initial start time: %v\n", lastTimestamp)
