@@ -75,12 +75,16 @@ func TestVersionCommandOutput(t *testing.T) {
 	versionCmd.Run(versionCmd, []string{})
 
 	// Close the write end of the pipe to flush the buffer
-	w.Close()
+	if err := w.Close(); err != nil {
+		t.Fatalf("Failed to close pipe: %v", err)
+	}
 	os.Stdout = oldStdout
 
 	// Read the output
 	var buf bytes.Buffer
-	io.Copy(&buf, r)
+	if _, err := io.Copy(&buf, r); err != nil {
+		t.Fatalf("Failed to copy output: %v", err)
+	}
 	output := buf.String()
 
 	// Verify output
@@ -100,12 +104,16 @@ func TestLogTypesCommandOutput(t *testing.T) {
 	logTypesCmd.Run(logTypesCmd, []string{})
 
 	// Close the write end of the pipe to flush the buffer
-	w.Close()
+	if err := w.Close(); err != nil {
+		t.Fatalf("Failed to close pipe: %v", err)
+	}
 	os.Stdout = oldStdout
 
 	// Read the output
 	var buf bytes.Buffer
-	io.Copy(&buf, r)
+	if _, err := io.Copy(&buf, r); err != nil {
+		t.Fatalf("Failed to copy output: %v", err)
+	}
 	output := buf.String()
 
 	// Verify output
@@ -339,12 +347,16 @@ func TestPresetsCommand(t *testing.T) {
 			unifiedPresetsCmd.Run(unifiedPresetsCmd, tt.args)
 
 			// Close the write end of the pipe to flush the buffer
-			w.Close()
+			if err := w.Close(); err != nil {
+				t.Fatalf("Failed to close pipe: %v", err)
+			}
 			os.Stdout = oldStdout
 
 			// Read the output
 			var buf bytes.Buffer
-			io.Copy(&buf, r)
+			if _, err := io.Copy(&buf, r); err != nil {
+				t.Fatalf("Failed to copy output: %v", err)
+			}
 			output := buf.String()
 
 			// Verify output contains expected strings

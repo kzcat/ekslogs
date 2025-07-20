@@ -20,7 +20,11 @@ func TestPresetsCommandIntegration(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Failed to build test binary: %v", err)
 	}
-	defer os.Remove("ekslogs_test")
+	defer func() {
+		if err := os.Remove("ekslogs_test"); err != nil {
+			t.Logf("Failed to remove test binary: %v", err)
+		}
+	}()
 
 	// Run the presets command
 	cmd = exec.Command("./ekslogs_test", "presets")
@@ -47,7 +51,11 @@ func TestHelpWithPresetFlag(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Failed to build test binary: %v", err)
 	}
-	defer os.Remove("ekslogs_test")
+	defer func() {
+		if err := os.Remove("ekslogs_test"); err != nil {
+			t.Logf("Failed to remove test binary: %v", err)
+		}
+	}()
 
 	// Run the help command
 	cmd = exec.Command("./ekslogs_test", "--help")

@@ -198,7 +198,7 @@ func PrintLog(log LogEntry, messageOnly bool) {
 	if messageOnly {
 		fmt.Println(log.Message)
 		// Flush stdout to ensure immediate output when piped
-		os.Stdout.Sync()
+		_ = os.Stdout.Sync()
 		return
 	}
 
@@ -224,5 +224,5 @@ func PrintLog(log LogEntry, messageOnly bool) {
 	)
 
 	// Flush stdout to ensure immediate output when piped
-	os.Stdout.Sync()
+	_ = os.Stdout.Sync()
 }

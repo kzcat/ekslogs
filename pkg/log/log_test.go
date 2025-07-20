@@ -452,11 +452,15 @@ func TestPrintLog(t *testing.T) {
 			PrintLog(tt.logEntry, tt.messageOnly)
 
 			// Close the write end of the pipe to flush the buffer
-			w.Close()
+			if err := w.Close(); err != nil {
+				t.Fatalf("Failed to close pipe: %v", err)
+			}
 
 			// Read the output
 			var buf bytes.Buffer
-			io.Copy(&buf, r)
+			if _, err := io.Copy(&buf, r); err != nil {
+				t.Fatalf("Failed to copy output: %v", err)
+			}
 			output := buf.String()
 
 			// Check if the output contains the expected strings

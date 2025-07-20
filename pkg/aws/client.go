@@ -211,7 +211,7 @@ Run 'ekslogs logtypes' for more information about available log types`,
 			// Use pagination to retrieve all log events
 			var nextToken *string
 			var totalEvents int32 = 0
-			var pageCount int = 0
+			var pageCount = 0
 
 			// Set a reasonable page size for each API call
 			pageSize := int32(1000)

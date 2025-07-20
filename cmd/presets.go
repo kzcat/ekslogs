@@ -59,9 +59,9 @@ Examples:
 
 			// Print preset name and description
 			if preset.Advanced {
-				color.New(color.FgMagenta, color.Bold).Printf("  %s\n", name)
+				_, _ = color.New(color.FgMagenta, color.Bold).Printf("  %s\n", name)
 			} else {
-				color.New(color.FgCyan, color.Bold).Printf("  %s\n", name)
+				_, _ = color.New(color.FgCyan, color.Bold).Printf("  %s\n", name)
 			}
 			fmt.Printf("    Description: %s\n", preset.Description)
 			fmt.Printf("    Log types: %s\n", strings.Join(preset.LogTypes, ", "))

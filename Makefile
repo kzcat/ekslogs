@@ -44,7 +44,7 @@ lint:
 	@echo "Running golangci-lint..."
 	@if command -v golangci-lint &> /dev/null; then \
 		echo "Using golangci-lint version: $$(golangci-lint --version)"; \
-		golangci-lint run --config=.golangci.yml; \
+		golangci-lint run -E errcheck,govet,ineffassign,staticcheck,unused; \
 	else \
 		echo "golangci-lint not found. Please install it first."; \
 		echo "See: https://golangci-lint.run/usage/install/"; \
