@@ -259,6 +259,17 @@ func init() {
 }
 
 func executeRoot() {
+	// Set up a channel to receive OS signals
+	c := make(chan os.Signal, 1)
+	signal.Notify(c, os.Interrupt, syscall.SIGTERM)
+
+	// Start a goroutine to handle signals
+	go func() {
+		<-c
+		// Just exit silently with status 0 when Ctrl+C is pressed
+		os.Exit(0)
+	}()
+
 	if err := rootCmd.Execute(); err != nil {
 		color.Red("Error: %v", err)
 		os.Exit(1)
