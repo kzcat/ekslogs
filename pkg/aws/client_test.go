@@ -2,6 +2,7 @@ package aws
 
 import (
 	"context"
+	"fmt"
 	"testing"
 	"time"
 
@@ -107,7 +108,7 @@ func TestGetLogGroups(t *testing.T) {
 
 	client := &EKSLogsClient{
 		logsClient: mockLogsClient,
-		verbose:    false,
+		verbose: false,
 	}
 
 	logGroups, err := client.GetLogGroups(context.TODO(), "my-cluster")
@@ -154,7 +155,7 @@ func TestGetLogs(t *testing.T) {
 
 	client := &EKSLogsClient{
 		logsClient: mockLogsClient,
-		verbose:    false,
+		verbose: false,
 	}
 
 	var receivedLogs []log.LogEntry
@@ -206,7 +207,7 @@ func TestTailLogs(t *testing.T) {
 
 	client := &EKSLogsClient{
 		logsClient: mockLogsClient,
-		verbose:    false,
+		verbose: false,
 	}
 
 	ctx, cancel := context.WithTimeout(context.Background(), 2*time.Second) // Run for a short duration
@@ -240,7 +241,7 @@ func TestGetLogsWithPagination(t *testing.T) {
 		},
 		FilterLogEventsFunc: func(ctx context.Context, params *cloudwatchlogs.FilterLogEventsInput, optFns ...func(*cloudwatchlogs.Options)) (*cloudwatchlogs.FilterLogEventsOutput, error) {
 			filterLogEventsCallCount++
-
+			
 			// First page has events and a next token
 			if filterLogEventsCallCount == 1 {
 				return &cloudwatchlogs.FilterLogEventsOutput{
@@ -259,7 +260,7 @@ func TestGetLogsWithPagination(t *testing.T) {
 					NextToken: aws.String("next-token-1"),
 				}, nil
 			}
-
+			
 			// Second page has events and a next token
 			if filterLogEventsCallCount == 2 {
 				return &cloudwatchlogs.FilterLogEventsOutput{
@@ -278,7 +279,7 @@ func TestGetLogsWithPagination(t *testing.T) {
 					NextToken: aws.String("next-token-2"),
 				}, nil
 			}
-
+			
 			// Third page has events but no next token (last page)
 			return &cloudwatchlogs.FilterLogEventsOutput{
 				Events: []types.FilteredLogEvent{
@@ -295,7 +296,7 @@ func TestGetLogsWithPagination(t *testing.T) {
 
 	client := &EKSLogsClient{
 		logsClient: mockLogsClient,
-		verbose:    false,
+		verbose: false,
 	}
 
 	var receivedLogs []log.LogEntry
@@ -313,7 +314,7 @@ func TestGetLogsWithPagination(t *testing.T) {
 	if len(receivedLogs) != 5 {
 		t.Errorf("expected 5 log entries, got %d", len(receivedLogs))
 	}
-
+	
 	// Verify that FilterLogEvents was called 3 times (for all 3 pages)
 	if filterLogEventsCallCount != 3 {
 		t.Errorf("expected FilterLogEvents to be called 3 times, got %d", filterLogEventsCallCount)
@@ -342,7 +343,7 @@ func TestGetLogsWithLimit(t *testing.T) {
 		},
 		FilterLogEventsFunc: func(ctx context.Context, params *cloudwatchlogs.FilterLogEventsInput, optFns ...func(*cloudwatchlogs.Options)) (*cloudwatchlogs.FilterLogEventsOutput, error) {
 			filterLogEventsCallCount++
-
+			
 			// First page has many events
 			return &cloudwatchlogs.FilterLogEventsOutput{
 				Events: []types.FilteredLogEvent{
@@ -379,7 +380,7 @@ func TestGetLogsWithLimit(t *testing.T) {
 
 	client := &EKSLogsClient{
 		logsClient: mockLogsClient,
-		verbose:    false,
+		verbose: false,
 	}
 
 	// Test with a limit of 3 logs
@@ -397,7 +398,7 @@ func TestGetLogsWithLimit(t *testing.T) {
 	if len(receivedLogs) != 3 {
 		t.Errorf("expected 3 log entries, got %d", len(receivedLogs))
 	}
-
+	
 	// Verify that FilterLogEvents was called only once
 	// (we don't need to fetch more pages after reaching the limit)
 	if filterLogEventsCallCount != 1 {
@@ -432,7 +433,7 @@ func TestGetLogsWithTimeRange(t *testing.T) {
 			if params.EndTime == nil {
 				t.Errorf("expected EndTime to be set")
 			}
-
+			
 			return &cloudwatchlogs.FilterLogEventsOutput{
 				Events: []types.FilteredLogEvent{
 					{
@@ -447,7 +448,7 @@ func TestGetLogsWithTimeRange(t *testing.T) {
 
 	client := &EKSLogsClient{
 		logsClient: mockLogsClient,
-		verbose:    false,
+		verbose: false,
 	}
 
 	var receivedLogs []log.LogEntry
@@ -466,5 +467,130 @@ func TestGetLogsWithTimeRange(t *testing.T) {
 
 	if len(receivedLogs) != 1 {
 		t.Errorf("expected 1 log entry, got %d", len(receivedLogs))
+	}
+}
+
+func TestGetAvailableLogTypes(t *testing.T) {
+	mockLogsClient := &MockCloudWatchLogsClient{
+		DescribeLogStreamsFunc: func(ctx context.Context, params *cloudwatchlogs.DescribeLogStreamsInput, optFns ...func(*cloudwatchlogs.Options)) (*cloudwatchlogs.DescribeLogStreamsOutput, error) {
+			return &cloudwatchlogs.DescribeLogStreamsOutput{
+				LogStreams: []types.LogStream{
+					{LogStreamName: aws.String("kube-apiserver-123")},
+					{LogStreamName: aws.String("kube-apiserver-audit-123")},
+					{LogStreamName: aws.String("authenticator-123")},
+					{LogStreamName: aws.String("kube-controller-manager-123")},
+					{LogStreamName: aws.String("cloud-controller-manager-123")},
+					{LogStreamName: aws.String("kube-scheduler-123")},
+					{LogStreamName: aws.String("unknown-123")},
+				},
+			}, nil
+		},
+	}
+
+	client := &EKSLogsClient{
+		logsClient: mockLogsClient,
+		verbose:    false,
+	}
+
+	logGroups := []string{"/aws/eks/my-cluster/cluster"}
+	logTypes, err := client.getAvailableLogTypes(context.TODO(), logGroups)
+	if err != nil {
+		t.Fatalf("getAvailableLogTypes() error = %v", err)
+	}
+
+	// Check that all expected log types are present
+	expectedLogTypes := []string{"api", "audit", "authenticator", "kcm", "ccm", "scheduler"}
+	for _, expected := range expectedLogTypes {
+		found := false
+		for _, actual := range logTypes {
+			if actual == expected {
+				found = true
+				break
+			}
+		}
+		if !found {
+			t.Errorf("Expected log type %s not found in result: %v", expected, logTypes)
+		}
+	}
+}
+
+func TestFilterLogGroupsByTypes(t *testing.T) {
+	client := &EKSLogsClient{
+		verbose: false,
+	}
+
+	logGroups := []string{"/aws/eks/my-cluster/cluster"}
+	logTypes := []string{"api", "audit"}
+
+	result := client.filterLogGroupsByTypes(context.TODO(), logGroups, logTypes)
+	
+	// Currently, this function just returns the input logGroups
+	if len(result) != len(logGroups) {
+		t.Errorf("filterLogGroupsByTypes() returned %d log groups, expected %d", len(result), len(logGroups))
+	}
+	
+	for i, lg := range logGroups {
+		if result[i] != lg {
+			t.Errorf("filterLogGroupsByTypes() returned %s at index %d, expected %s", result[i], i, lg)
+		}
+	}
+}
+
+func TestGetLogStreamsForTypes(t *testing.T) {
+	mockLogsClient := &MockCloudWatchLogsClient{
+		DescribeLogStreamsFunc: func(ctx context.Context, params *cloudwatchlogs.DescribeLogStreamsInput, optFns ...func(*cloudwatchlogs.Options)) (*cloudwatchlogs.DescribeLogStreamsOutput, error) {
+			return &cloudwatchlogs.DescribeLogStreamsOutput{
+				LogStreams: []types.LogStream{
+					{LogStreamName: aws.String("kube-apiserver-123")},
+					{LogStreamName: aws.String("kube-apiserver-audit-123")},
+					{LogStreamName: aws.String("authenticator-123")},
+					{LogStreamName: aws.String("kube-controller-manager-123")},
+					{LogStreamName: aws.String("cloud-controller-manager-123")},
+					{LogStreamName: aws.String("kube-scheduler-123")},
+					{LogStreamName: aws.String("unknown-123")},
+				},
+			}, nil
+		},
+	}
+
+	client := &EKSLogsClient{
+		logsClient: mockLogsClient,
+		verbose:    false,
+	}
+
+	// Test case 1: Filter for specific log types
+	logTypes := []string{"api", "audit"}
+	streams, err := client.getLogStreamsForTypes(context.TODO(), "/aws/eks/my-cluster/cluster", logTypes)
+	if err != nil {
+		t.Fatalf("getLogStreamsForTypes() error = %v", err)
+	}
+
+	// Should return only streams for the specified log types
+	expectedStreams := []string{"kube-apiserver-123", "kube-apiserver-audit-123"}
+	if len(streams) != len(expectedStreams) {
+		t.Errorf("getLogStreamsForTypes() returned %d streams, expected %d", len(streams), len(expectedStreams))
+	}
+	
+	for _, expected := range expectedStreams {
+		found := false
+		for _, actual := range streams {
+			if actual == expected {
+				found = true
+				break
+			}
+		}
+		if !found {
+			t.Errorf("Expected stream %s not found in result: %v", expected, streams)
+		}
+	}
+
+	// Test case 2: Error handling
+	mockLogsClient.DescribeLogStreamsFunc = func(ctx context.Context, params *cloudwatchlogs.DescribeLogStreamsInput, optFns ...func(*cloudwatchlogs.Options)) (*cloudwatchlogs.DescribeLogStreamsOutput, error) {
+		return nil, fmt.Errorf("test error")
+	}
+
+	_, err = client.getLogStreamsForTypes(context.TODO(), "/aws/eks/my-cluster/cluster", logTypes)
+	if err == nil {
+		t.Errorf("getLogStreamsForTypes() expected error, got nil")
 	}
 }
