@@ -2,7 +2,7 @@
 
 All notable changes to this project will be documented in this file.
 
-## [Unreleased]
+## [0.1.4] - 2025-07-20
 
 ### Changed
 - Swapped `-f` and `-F` flags for better usability:
