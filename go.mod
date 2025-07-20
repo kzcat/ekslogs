@@ -9,6 +9,7 @@ require (
 	github.com/aws/aws-sdk-go-v2/service/eks v1.35.0
 	github.com/fatih/color v1.16.0
 	github.com/spf13/cobra v1.8.0
+	github.com/stretchr/testify v1.10.0
 )
 
 require (
@@ -30,8 +31,6 @@ require (
 	github.com/mattn/go-isatty v0.0.20 // indirect
 	github.com/pmezard/go-difflib v1.0.0 // indirect
 	github.com/spf13/pflag v1.0.5 // indirect
-	github.com/stretchr/objx v0.5.2 // indirect
-	github.com/stretchr/testify v1.10.0 // indirect
 	golang.org/x/sys v0.14.0 // indirect
 	gopkg.in/yaml.v3 v3.0.1 // indirect
 )
