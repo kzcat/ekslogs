@@ -1,46 +1,28 @@
-# Binaries for programs and plugins
+# バイナリ
+ekslogs
 *.exe
-*.exe~
 *.dll
 *.so
 *.dylib
-bin/
-dist/
 
-# Test binary, built with `go test -c`
+# テスト関連
 *.test
-
-# Output of the go coverage tool, specifically when used with LiteIDE
 *.out
 coverage.html
 
-# Dependency directories (remove the comment below to include it)
-vendor/
+# 依存関係
+/vendor/
 
-# Go workspace file
-go.work
-
-# IDE files
-.vscode/
+# IDE関連
 .idea/
+.vscode/
 *.swp
 *.swo
 *~
 
-# OS generated files
+# OS関連
 .DS_Store
-.DS_Store?
-._*
-.Spotlight-V100
-.Trashes
-ehthumbs.db
 Thumbs.db
 
-# Logs
+# その他
 *.log
-
-# GoReleaser
-dist/
-
-# Coverage files
-coverage.html

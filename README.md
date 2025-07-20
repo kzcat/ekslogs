@@ -212,6 +212,62 @@ If you encounter authentication errors:
 
 Contributions are welcome! Please feel free to submit a Pull Request.
 
+### Development Setup
+
+1. Clone the repository
+   ```bash
+   git clone https://github.com/kzcat/ekslogs.git
+   cd ekslogs
+   ```
+
+2. Install required tools
+   ```bash
+   make install-tools
+   ```
+
+3. Install pre-commit hooks
+   ```bash
+   make install-hooks
+   ```
+
+### Development Workflow
+
+The project includes a Makefile with useful commands:
+
+```bash
+# Build the binary
+make build
+
+# Run tests
+make test
+
+# Generate test coverage report
+make coverage
+
+# Format code
+make fmt
+
+# Run linters
+make lint
+
+# Clean up build artifacts
+make clean
+
+# Show all available commands
+make help
+```
+
+### Pre-commit Hooks
+
+The project uses pre-commit hooks to ensure code quality. The hooks run:
+
+1. `gofmt` to format code
+2. `go vet` for static analysis
+3. `go test` to run tests
+4. `golangci-lint` for comprehensive linting (if installed)
+
+These hooks run automatically when you commit changes.
+
 ## License
 
 This project is licensed under the MIT License - see the LICENSE file for details.
