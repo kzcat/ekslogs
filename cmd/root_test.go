@@ -1,10 +1,9 @@
 package cmd
 
 import (
-	"bytes"
 	"context"
-	"io"
-	"os"
+	"fmt"
+	"strings"
 	"testing"
 	"time"
 
@@ -65,14 +64,27 @@ func newTestRootCmd(mockClient *MockEKSLogsClient) *cobra.Command {
 			if presetName != "" {
 				preset, exists := filter.GetUnifiedPreset(presetName)
 				if !exists {
-					return nil // Just for testing
+					return fmt.Errorf("preset filter '%s' not found. Run 'ekslogs presets' to see available presets", presetName)
 				}
 
+				// Apply preset filter pattern if no custom filter pattern is provided
 				if filterPattern == "" {
 					filterPattern = preset.Pattern
+					if verbose {
+						if preset.Advanced {
+							fmt.Printf("Using preset filter pattern: %s (type: %s)\n", filterPattern, preset.PatternType)
+						} else {
+							fmt.Printf("Using preset filter pattern: %s\n", filterPattern)
+						}
+					}
 				}
+
+				// Apply preset log types if no custom log types are provided
 				if len(logTypes) == 0 {
 					logTypes = preset.LogTypes
+					if verbose {
+						fmt.Printf("Using preset log types: %s\n", strings.Join(logTypes, ", "))
+					}
 				}
 			}
 
@@ -91,7 +103,7 @@ func newTestRootCmd(mockClient *MockEKSLogsClient) *cobra.Command {
 			if startTime != "" {
 				t, err := log.ParseTimeString(startTime)
 				if err != nil {
-					return err
+					return fmt.Errorf("failed to parse start time: %w", err)
 				}
 				startT = t
 			}
@@ -99,7 +111,7 @@ func newTestRootCmd(mockClient *MockEKSLogsClient) *cobra.Command {
 			if endTime != "" {
 				t, err := log.ParseTimeString(endTime)
 				if err != nil {
-					return err
+					return fmt.Errorf("failed to parse end time: %w", err)
 				}
 				endT = t
 			}
@@ -211,13 +223,13 @@ func TestLimitFlagHandling(t *testing.T) {
 
 	// Test case 1: When limit flag is not specified
 	limitSpecified = false
-	
+
 	// Verify that limitSpecified is false
 	assert.False(t, limitSpecified)
-	
+
 	// Test case 2: When limit flag is specified
 	limitSpecified = true
-	
+
 	// Verify that limitSpecified is true
 	assert.True(t, limitSpecified)
 }
@@ -234,7 +246,7 @@ func TestEffectiveLimitCalculation(t *testing.T) {
 	// Test case 1: When limit flag is not specified
 	limit = 1000
 	limitSpecified = false
-	
+
 	// Calculate effective limit as in the code
 	var effectiveLimit int32
 	if limitSpecified {
@@ -242,21 +254,21 @@ func TestEffectiveLimitCalculation(t *testing.T) {
 	} else {
 		effectiveLimit = 0 // 0 means unlimited
 	}
-	
+
 	// Verify that effective limit is 0 (unlimited)
 	assert.Equal(t, int32(0), effectiveLimit)
-	
+
 	// Test case 2: When limit flag is specified
 	limit = 500
 	limitSpecified = true
-	
+
 	// Calculate effective limit again
 	if limitSpecified {
 		effectiveLimit = limit
 	} else {
 		effectiveLimit = 0
 	}
-	
+
 	// Verify that effective limit is the specified value
 	assert.Equal(t, int32(500), effectiveLimit)
 }
@@ -271,22 +283,22 @@ func TestRootCommand(t *testing.T) {
 
 	// Create a mock client
 	mockClient := new(MockEKSLogsClient)
-	
+
 	// Setup mock expectations
-	mockClient.On("GetLogs", 
-		mock.Anything, 
-		"test-cluster", 
-		mock.AnythingOfType("[]string"), 
-		mock.AnythingOfType("*time.Time"), 
-		mock.AnythingOfType("*time.Time"), 
-		mock.AnythingOfType("*string"), 
-		int32(0), 
+	mockClient.On("GetLogs",
+		mock.Anything,
+		"test-cluster",
+		mock.AnythingOfType("[]string"),
+		mock.AnythingOfType("*time.Time"),
+		mock.AnythingOfType("*time.Time"),
+		mock.AnythingOfType("*string"),
+		int32(0),
 		mock.AnythingOfType("func(log.LogEntry)"),
 	).Return(nil)
 
 	// Create a test command with our mock
 	testCmd := newTestRootCmd(mockClient)
-	
+
 	// Replace the root command with our test command
 	rootCmd = testCmd
 
@@ -296,7 +308,7 @@ func TestRootCommand(t *testing.T) {
 	assert.NoError(t, err)
 	assert.Equal(t, "test-cluster", clusterName)
 	assert.Empty(t, logTypes)
-	
+
 	// Verify that the mock methods were called
 	mockClient.AssertExpectations(t)
 }
@@ -311,22 +323,22 @@ func TestRootCommandWithLogTypes(t *testing.T) {
 
 	// Create a mock client
 	mockClient := new(MockEKSLogsClient)
-	
+
 	// Setup mock expectations
-	mockClient.On("GetLogs", 
-		mock.Anything, 
-		"test-cluster", 
-		[]string{"api", "audit"}, 
-		mock.AnythingOfType("*time.Time"), 
-		mock.AnythingOfType("*time.Time"), 
-		mock.AnythingOfType("*string"), 
-		int32(0), 
+	mockClient.On("GetLogs",
+		mock.Anything,
+		"test-cluster",
+		[]string{"api", "audit"},
+		mock.AnythingOfType("*time.Time"),
+		mock.AnythingOfType("*time.Time"),
+		mock.AnythingOfType("*string"),
+		int32(0),
 		mock.AnythingOfType("func(log.LogEntry)"),
 	).Return(nil)
 
 	// Create a test command with our mock
 	testCmd := newTestRootCmd(mockClient)
-	
+
 	// Replace the root command with our test command
 	rootCmd = testCmd
 
@@ -336,7 +348,7 @@ func TestRootCommandWithLogTypes(t *testing.T) {
 	assert.NoError(t, err)
 	assert.Equal(t, "test-cluster", clusterName)
 	assert.Equal(t, []string{"api", "audit"}, logTypes)
-	
+
 	// Verify that the mock methods were called
 	mockClient.AssertExpectations(t)
 }
@@ -351,22 +363,22 @@ func TestRootCommandWithFlags(t *testing.T) {
 
 	// Create a mock client
 	mockClient := new(MockEKSLogsClient)
-	
+
 	// Setup mock expectations
-	mockClient.On("GetLogs", 
-		mock.Anything, 
-		"test-cluster", 
-		mock.AnythingOfType("[]string"), 
-		mock.AnythingOfType("*time.Time"), 
-		mock.AnythingOfType("*time.Time"), 
-		mock.AnythingOfType("*string"), 
-		int32(500), 
+	mockClient.On("GetLogs",
+		mock.Anything,
+		"test-cluster",
+		mock.AnythingOfType("[]string"),
+		mock.AnythingOfType("*time.Time"),
+		mock.AnythingOfType("*time.Time"),
+		mock.AnythingOfType("*string"),
+		int32(500),
 		mock.AnythingOfType("func(log.LogEntry)"),
 	).Return(nil)
 
 	// Create a test command with our mock
 	testCmd := newTestRootCmd(mockClient)
-	
+
 	// Replace the root command with our test command
 	rootCmd = testCmd
 
@@ -378,7 +390,7 @@ func TestRootCommandWithFlags(t *testing.T) {
 	assert.Equal(t, "us-west-2", region)
 	assert.True(t, verbose)
 	assert.Equal(t, int32(500), limit)
-	
+
 	// Verify that the mock methods were called
 	mockClient.AssertExpectations(t)
 }
@@ -393,20 +405,20 @@ func TestRootCommandWithFollow(t *testing.T) {
 
 	// Create a mock client
 	mockClient := new(MockEKSLogsClient)
-	
+
 	// Setup mock expectations
-	mockClient.On("TailLogs", 
-		mock.Anything, 
-		"test-cluster", 
-		mock.AnythingOfType("[]string"), 
-		mock.AnythingOfType("*string"), 
-		1*time.Second, 
+	mockClient.On("TailLogs",
+		mock.Anything,
+		"test-cluster",
+		mock.AnythingOfType("[]string"),
+		mock.AnythingOfType("*string"),
+		1*time.Second,
 		false,
 	).Return(nil)
 
 	// Create a test command with our mock
 	testCmd := newTestRootCmd(mockClient)
-	
+
 	// Replace the root command with our test command
 	rootCmd = testCmd
 
@@ -416,73 +428,19 @@ func TestRootCommandWithFollow(t *testing.T) {
 	assert.NoError(t, err)
 	assert.Equal(t, "test-cluster", clusterName)
 	assert.True(t, follow)
-	
+
 	// Verify that the mock methods were called
 	mockClient.AssertExpectations(t)
 }
 
-// TestVersionCommand tests the version command
-func TestVersionCommand(t *testing.T) {
-	// Save original values to restore after test
-	origVersion := version
-	origCommit := commit
-	origDate := date
-	defer func() {
-		version = origVersion
-		commit = origCommit
-		date = origDate
-	}()
-
-	// Set test values
-	version = "1.0.0"
-	commit = "abcdef"
-	date = "2024-01-01"
-
-	// Create a buffer to capture output
-	oldStdout := os.Stdout
-	r, w, _ := os.Pipe()
-	os.Stdout = w
-
-	// Execute the version command
-	versionCmd.Run(versionCmd, []string{})
-
-	// Close the write end of the pipe to flush the buffer
-	w.Close()
-	os.Stdout = oldStdout
-
-	// Read the output
-	var buf bytes.Buffer
-	io.Copy(&buf, r)
-	output := buf.String()
-
-	// Verify output
-	assert.Contains(t, output, "ekslogs version 1.0.0")
-	assert.Contains(t, output, "commit: abcdef")
-	assert.Contains(t, output, "built at: 2024-01-01")
+// TestVersionCommandInRoot tests the version command
+func TestVersionCommandInRoot(t *testing.T) {
+	// Skip this test as it's now in version_test.go
+	t.Skip("Skipping version command test in root_test.go")
 }
 
-// TestLogTypesCommand tests the logtypes command
-func TestLogTypesCommand(t *testing.T) {
-	// Create a buffer to capture output
-	oldStdout := os.Stdout
-	r, w, _ := os.Pipe()
-	os.Stdout = w
-
-	// Execute the logtypes command
-	logTypesCmd.Run(logTypesCmd, []string{})
-
-	// Close the write end of the pipe to flush the buffer
-	w.Close()
-	os.Stdout = oldStdout
-
-	// Read the output
-	var buf bytes.Buffer
-	io.Copy(&buf, r)
-	output := buf.String()
-
-	// Verify output
-	assert.Contains(t, output, "Available log types")
-	assert.Contains(t, output, "api")
-	assert.Contains(t, output, "audit")
-	assert.Contains(t, output, "authenticator")
+// TestLogTypesCommandInRoot tests the logtypes command
+func TestLogTypesCommandInRoot(t *testing.T) {
+	// Skip this test as it's now in logtypes_test.go
+	t.Skip("Skipping logtypes command test in root_test.go")
 }

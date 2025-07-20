@@ -36,7 +36,7 @@ func TestGetLogsWithFilterPattern(t *testing.T) {
 			if params.FilterPattern == nil || *params.FilterPattern != "ERROR" {
 				t.Errorf("expected FilterPattern to be 'ERROR', got %v", params.FilterPattern)
 			}
-			
+
 			return &cloudwatchlogs.FilterLogEventsOutput{
 				Events: []types.FilteredLogEvent{
 					{
@@ -98,7 +98,7 @@ func TestTailLogsWithFilterPattern(t *testing.T) {
 			if params.FilterPattern == nil || *params.FilterPattern != "ERROR" {
 				t.Errorf("expected FilterPattern to be 'ERROR', got %v", params.FilterPattern)
 			}
-			
+
 			return &cloudwatchlogs.FilterLogEventsOutput{
 				Events: []types.FilteredLogEvent{},
 			}, nil
@@ -147,11 +147,11 @@ func TestGetLogsWithSpecificLogTypes(t *testing.T) {
 			if len(params.LogStreamNames) != 1 {
 				t.Errorf("expected 1 log stream, got %d", len(params.LogStreamNames))
 			}
-			
+
 			if len(params.LogStreamNames) > 0 && params.LogStreamNames[0] != "kube-apiserver-123" {
 				t.Errorf("expected log stream 'kube-apiserver-123', got %s", params.LogStreamNames[0])
 			}
-			
+
 			return &cloudwatchlogs.FilterLogEventsOutput{
 				Events: []types.FilteredLogEvent{
 					{

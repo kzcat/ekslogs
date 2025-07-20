@@ -13,7 +13,7 @@ import (
 func TestCommandInitialization(t *testing.T) {
 	// Test that the root command has subcommands
 	assert.NotEmpty(t, rootCmd.Commands())
-	
+
 	// Test that the version command is registered
 	found := false
 	for _, cmd := range rootCmd.Commands() {
@@ -23,7 +23,7 @@ func TestCommandInitialization(t *testing.T) {
 		}
 	}
 	assert.True(t, found, "version command should be registered")
-	
+
 	// Test that the logtypes command is registered
 	found = false
 	for _, cmd := range rootCmd.Commands() {
@@ -33,7 +33,7 @@ func TestCommandInitialization(t *testing.T) {
 		}
 	}
 	assert.True(t, found, "logtypes command should be registered")
-	
+
 	// Test that the presets command is registered
 	found = false
 	for _, cmd := range rootCmd.Commands() {
@@ -49,7 +49,7 @@ func TestCommandInitialization(t *testing.T) {
 func TestRootCommandFlagsCheck(t *testing.T) {
 	// Test that all expected flags are registered
 	flags := rootCmd.Flags()
-	
+
 	// Check required flags
 	assert.NotNil(t, flags.Lookup("region"))
 	assert.NotNil(t, flags.Lookup("start-time"))
@@ -70,18 +70,18 @@ func TestPreRunFunctionCheck(t *testing.T) {
 	defer func() {
 		limitSpecified = origLimitSpecified
 	}()
-	
+
 	// Reset value
 	limitSpecified = false
-	
+
 	// Create a mock command
 	cmd := rootCmd
-	
+
 	// Test case 1: Flag not changed
 	cmd.Flags().Changed("limit") // This doesn't actually mark it as changed
 	rootCmd.PreRun(cmd, []string{})
 	assert.False(t, limitSpecified)
-	
+
 	// Test case 2: Flag changed (simulated)
 	limitSpecified = true // Simulate flag changed
 	assert.True(t, limitSpecified)
@@ -98,29 +98,29 @@ func TestVersionCommandOutput(t *testing.T) {
 		commit = origCommit
 		date = origDate
 	}()
-	
+
 	// Set test values
 	version = "1.0.0"
 	commit = "abcdef"
 	date = "2024-01-01"
-	
+
 	// Create a buffer to capture output
 	oldStdout := os.Stdout
 	r, w, _ := os.Pipe()
 	os.Stdout = w
-	
+
 	// Execute the version command
 	versionCmd.Run(versionCmd, []string{})
-	
+
 	// Close the write end of the pipe to flush the buffer
 	w.Close()
 	os.Stdout = oldStdout
-	
+
 	// Read the output
 	var buf bytes.Buffer
 	io.Copy(&buf, r)
 	output := buf.String()
-	
+
 	// Verify output
 	assert.Contains(t, output, "ekslogs version 1.0.0")
 	assert.Contains(t, output, "commit: abcdef")
@@ -133,19 +133,19 @@ func TestLogTypesCommandOutput(t *testing.T) {
 	oldStdout := os.Stdout
 	r, w, _ := os.Pipe()
 	os.Stdout = w
-	
+
 	// Execute the logtypes command
 	logTypesCmd.Run(logTypesCmd, []string{})
-	
+
 	// Close the write end of the pipe to flush the buffer
 	w.Close()
 	os.Stdout = oldStdout
-	
+
 	// Read the output
 	var buf bytes.Buffer
 	io.Copy(&buf, r)
 	output := buf.String()
-	
+
 	// Verify output
 	assert.Contains(t, output, "Available log types")
 	assert.Contains(t, output, "api")

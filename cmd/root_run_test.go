@@ -95,7 +95,7 @@ func TestFilterPatternHandling(t *testing.T) {
 func TestDefaultTimeRange(t *testing.T) {
 	// Test case: both start and end time are nil
 	var startT, endT *string
-	
+
 	// Verify that default time range would be applied
 	if startT == nil && endT == nil {
 		assert.True(t, true, "Default time range should be applied")

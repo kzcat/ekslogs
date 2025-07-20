@@ -33,6 +33,10 @@ var (
 	verbose        bool
 	follow         bool
 	interval       time.Duration
+
+	// Execute is the function that executes the root command
+	// It can be replaced in tests
+	Execute = executeRoot
 )
 
 var rootCmd = &cobra.Command{
@@ -229,7 +233,7 @@ func init() {
 	}
 }
 
-func Execute() {
+func executeRoot() {
 	if err := rootCmd.Execute(); err != nil {
 		color.Red("Error: %v", err)
 		os.Exit(1)
