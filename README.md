@@ -15,6 +15,8 @@ A fast and intuitive CLI tool for retrieving and monitoring Amazon EKS cluster C
 - Colored output support
 - Preset filters for common use cases
 
+For a complete list of changes and version history, see the [CHANGELOG](CHANGELOG.md).
+
 ## Installation
 
 ### Using Go Install
