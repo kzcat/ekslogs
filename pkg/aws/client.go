@@ -394,7 +394,6 @@ func (c *EKSLogsClient) TailLogs(ctx context.Context, clusterName string, logTyp
 		case <-ctx.Done():
 			// When Ctrl+C is pressed, exit gracefully without error
 			if ctx.Err() == context.Canceled {
-				fmt.Println("\nMonitoring stopped")
 				return nil
 			}
 			return ctx.Err()
@@ -412,7 +411,6 @@ func (c *EKSLogsClient) TailLogs(ctx context.Context, clusterName string, logTyp
 			if err != nil {
 				// If context was cancelled during GetLogs execution, exit gracefully
 				if ctx.Err() == context.Canceled {
-					fmt.Println("\nMonitoring stopped")
 					return nil
 				}
 				color.Red("Log retrieval error: %v", err)
