@@ -6,8 +6,8 @@ on:
       - 'v*'
 
 permissions:
-  contents: write  # リリース作成に必要な権限
-  packages: write  # パッケージ公開に必要な権限（必要な場合）
+  contents: write  # Required permission for creating releases
+  packages: write  # Required permission for publishing packages (if needed)
 
 jobs:
   release:
