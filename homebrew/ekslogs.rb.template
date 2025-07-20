@@ -1,0 +1,17 @@
+class Ekslogs < Formula
+  desc "A fast and intuitive CLI tool for retrieving and monitoring Amazon EKS cluster Control Plane logs"
+  homepage "https://github.com/kzcat/ekslogs"
+  url "https://github.com/kzcat/ekslogs/archive/refs/tags/VERSION.tar.gz"
+  sha256 "SHA256"
+  license "MIT"
+  
+  depends_on "go" => :build
+  
+  def install
+    system "go", "build", *std_go_args(ldflags: "-s -w")
+  end
+  
+  test do
+    assert_match "ekslogs version", shell_output("#{bin}/ekslogs version")
+  end
+end

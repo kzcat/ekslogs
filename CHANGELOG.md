@@ -2,6 +2,12 @@
 
 All notable changes to this project will be documented in this file.
 
+## [Unreleased]
+
+### Added
+- Homebrew installation support
+- Documentation for setting up Homebrew tap
+
 ## [0.1.4] - 2025-07-20
 
 ### Changed
