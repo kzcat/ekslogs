@@ -12,30 +12,9 @@ A fast and intuitive CLI tool for retrieving and monitoring Amazon EKS cluster C
 - Real-time log monitoring (tail functionality)
 - Time range specification (absolute and relative)
 - Log filtering with pattern matching
-- Support for multiple clusters
 - Colored output support
-- Cross-platform support
 
 ## Installation
-
-### From GitHub Releases (Recommended)
-```bash
-# Download the latest release for your platform
-curl -L https://github.com/kzcat/ekslogs/releases/latest/download/ekslogs_Linux_x86_64.tar.gz | tar xz
-sudo mv ekslogs /usr/local/bin/
-
-# Or for macOS
-curl -L https://github.com/kzcat/ekslogs/releases/latest/download/ekslogs_Darwin_x86_64.tar.gz | tar xz
-sudo mv ekslogs /usr/local/bin/
-```
-
-### From Source
-```bash
-git clone https://github.com/kzcat/ekslogs.git
-cd ekslogs
-make build
-sudo cp bin/ekslogs /usr/local/bin/
-```
 
 ### Using Go Install
 ```bash
