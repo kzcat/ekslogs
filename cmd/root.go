@@ -42,13 +42,23 @@ var (
 var rootCmd = &cobra.Command{
 	Use:   "ekslogs <cluster-name> [log-types...]",
 	Short: "A CLI tool for retrieving and monitoring EKS cluster Control Plane logs.",
-	Long: `A CLI tool for retrieving and monitoring Amazon EKS cluster Control Plane logs.
+	Long: `A fast and intuitive CLI tool for retrieving and monitoring Amazon EKS cluster Control Plane logs.
+
+Features:
+- Retrieve various EKS Control Plane log types
+- Real-time log monitoring (tail functionality)
+- Time range specification (absolute and relative)
+- Log filtering with pattern matching
+- Colored output support
+- Preset filters for common use cases
 
 Log types: api, audit, auth, kcm, ccm, scheduler (or sched)
-If no log types are specified, all available log types will be retrieved.`,
+If no log types are specified, all available log types will be retrieved.
+Run 'ekslogs logtypes' for more detailed information about available log types.`,
 	Example: `  ekslogs my-cluster                         # Get all logs from past hour
   ekslogs my-cluster api audit -F -f "error" # Monitor API/audit errors in real-time
-  ekslogs my-cluster -s "-1h" -e "now"       # Get logs from specific time range`,
+  ekslogs my-cluster -s "-1h" -e "now"       # Get logs from specific time range
+  ekslogs my-cluster -p api-errors -F        # Monitor API errors in real-time using preset`,
 	Args: cobra.MinimumNArgs(1),
 	RunE: func(cmd *cobra.Command, args []string) error {
 		clusterName = args[0]
@@ -184,6 +194,7 @@ If no log types are specified, all available log types will be retrieved.`,
 var versionCmd = &cobra.Command{
 	Use:   "version",
 	Short: "Print version information",
+	Long:  `Print version information about the ekslogs CLI tool, including version number, commit hash, and build date.`,
 	Run: func(cmd *cobra.Command, args []string) {
 		fmt.Printf("ekslogs version %s\n", version)
 		fmt.Printf("commit: %s\n", commit)
@@ -194,6 +205,15 @@ var versionCmd = &cobra.Command{
 var logTypesCmd = &cobra.Command{
 	Use:   "logtypes",
 	Short: "Show detailed information about available log types",
+	Long: `Show detailed information about available log types for EKS Control Plane logs.
+
+Each log type corresponds to a specific component of the EKS Control Plane.
+You can specify one or more log types when retrieving logs to focus on specific components.
+
+Examples:
+  ekslogs my-cluster api audit     # Get logs from API server and audit logs
+  ekslogs my-cluster auth          # Get authentication logs
+  ekslogs my-cluster scheduler     # Get scheduler logs`,
 	Run: func(cmd *cobra.Command, args []string) {
 		fmt.Println("Available log types for EKS Control Plane logs:")
 		fmt.Println()

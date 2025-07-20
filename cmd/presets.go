@@ -18,7 +18,19 @@ var (
 var unifiedPresetsCmd = &cobra.Command{
 	Use:   "presets",
 	Short: "List available filter presets",
-	Long:  `List all available filter presets for common use cases.`,
+	Long: `List all available filter presets for common use cases.
+
+Presets provide pre-configured filters for common scenarios, making it easy to find specific types of logs.
+Use the --advanced flag to see more complex filter patterns, or --all to see all available presets.
+
+Examples:
+  ekslogs presets                # Show basic presets
+  ekslogs presets --advanced     # Show advanced presets
+  ekslogs presets --all          # Show all presets
+  
+  # Using presets with the main command:
+  ekslogs my-cluster -p api-errors
+  ekslogs my-cluster -p network-issues -F`,
 	Run: func(cmd *cobra.Command, args []string) {
 		var presetNames []string
 

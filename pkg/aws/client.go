@@ -102,11 +102,15 @@ func (c *EKSLogsClient) GetLogGroups(ctx context.Context, clusterName string) ([
 func (c *EKSLogsClient) GetLogs(ctx context.Context, clusterName string, logTypes []string, startTime, endTime *time.Time, filterPattern *string, limit int32, printFunc func(log.LogEntry)) error {
 	logGroups, err := c.GetLogGroups(ctx, clusterName)
 	if err != nil {
-		return err
+		return fmt.Errorf("failed to get log groups: %w\nPlease check your AWS credentials and permissions", err)
 	}
 
 	if len(logGroups) == 0 {
-		return fmt.Errorf(`no log groups found for cluster '%s'. Please ensure:\n  1. The cluster exists in the specified region\n  2. Control plane logging is enabled for the cluster\n  3. You have the required permissions`, clusterName)
+		return fmt.Errorf(`no log groups found for cluster '%s'. Please ensure:
+  1. The cluster exists in the specified region
+  2. Control plane logging is enabled for the cluster (check EKS console -> cluster -> Logging tab)
+  3. You have the required permissions (logs:DescribeLogGroups, logs:FilterLogEvents, eks:DescribeCluster)
+  4. Try using the -v flag for more detailed output`, clusterName)
 	}
 
 	var normalizedLogTypes []string
@@ -129,7 +133,9 @@ func (c *EKSLogsClient) GetLogs(ctx context.Context, clusterName string, logType
 
 		if len(validLogTypes) == 0 {
 			sort.Strings(availableLogTypes)
-			return fmt.Errorf(`no logs found for specified types: %v\nAvailable log types for cluster '%s': %s`,
+			return fmt.Errorf(`no logs found for specified types: %v
+Available log types for cluster '%s': %s
+Run 'ekslogs logtypes' for more information about available log types`,
 				logTypes, clusterName, log.GetLogTypeDescription(availableLogTypes))
 		}
 
@@ -362,11 +368,15 @@ func contains(slice []string, item string) bool {
 func (c *EKSLogsClient) TailLogs(ctx context.Context, clusterName string, logTypes []string, filterPattern *string, interval time.Duration, messageOnly bool) error {
 	logGroups, err := c.GetLogGroups(ctx, clusterName)
 	if err != nil {
-		return err
+		return fmt.Errorf("failed to get log groups: %w\nPlease check your AWS credentials and permissions", err)
 	}
 
 	if len(logGroups) == 0 {
-		return fmt.Errorf(`no log groups found for cluster '%s'. Please ensure:\n  1. The cluster exists in the specified region\n  2. Control plane logging is enabled for the cluster\n  3. You have the required permissions`, clusterName)
+		return fmt.Errorf(`no log groups found for cluster '%s'. Please ensure:
+  1. The cluster exists in the specified region
+  2. Control plane logging is enabled for the cluster (check EKS console -> cluster -> Logging tab)
+  3. You have the required permissions (logs:DescribeLogGroups, logs:FilterLogEvents, eks:DescribeCluster)
+  4. Try using the -v flag for more detailed output`, clusterName)
 	}
 
 	lastTimestamp := time.Now().Add(-1 * time.Minute) // Start from 1 minute ago
