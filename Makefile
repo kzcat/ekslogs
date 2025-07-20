@@ -51,8 +51,6 @@ lint:
 		echo "You can install it with: go install github.com/golangci/golangci-lint/cmd/golangci-lint@v1.54.2"; \
 		exit 1; \
 	fi
-	fi
-	fi
 
 # クリーンアップ
 clean:
