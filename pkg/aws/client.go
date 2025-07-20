@@ -392,6 +392,10 @@ func (c *EKSLogsClient) TailLogs(ctx context.Context, clusterName string, logTyp
 	for {
 		select {
 		case <-ctx.Done():
+			// When Ctrl+C is pressed, exit gracefully without error
+			if ctx.Err() == context.Canceled {
+				return nil
+			}
 			return ctx.Err()
 		case <-ticker.C:
 			now := time.Now()
@@ -405,6 +409,10 @@ func (c *EKSLogsClient) TailLogs(ctx context.Context, clusterName string, logTyp
 
 			err := c.GetLogs(ctx, clusterName, logTypes, &lastTimestamp, &now, filterPattern, 100, printAndTrackTimestamp)
 			if err != nil {
+				// If context was cancelled during GetLogs execution, exit gracefully
+				if ctx.Err() == context.Canceled {
+					return nil
+				}
 				color.Red("Log retrieval error: %v", err)
 				continue
 			}

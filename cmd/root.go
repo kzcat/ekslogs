@@ -146,7 +146,12 @@ Run 'ekslogs logtypes' for more detailed information about available log types.`
 			ctx, cancel := signal.NotifyContext(ctx, os.Interrupt, syscall.SIGTERM)
 			defer cancel()
 
-			return client.TailLogs(ctx, clusterName, logTypes, fp, interval, messageOnly)
+			err := client.TailLogs(ctx, clusterName, logTypes, fp, interval, messageOnly)
+			// If context was cancelled (Ctrl+C), treat it as a normal exit
+			if err != nil && ctx.Err() == context.Canceled {
+				return nil
+			}
+			return err
 		}
 
 		var startT, endT *time.Time
