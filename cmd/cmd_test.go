@@ -17,7 +17,7 @@ import (
 func TestCommandInitialization(t *testing.T) {
 	// Test that the root command has subcommands
 	assert.NotEmpty(t, rootCmd.Commands())
-	
+
 	// Test that the version command is registered
 	found := false
 	for _, c := range rootCmd.Commands() {
@@ -27,7 +27,7 @@ func TestCommandInitialization(t *testing.T) {
 		}
 	}
 	assert.True(t, found, "version command should be registered")
-	
+
 	// Test that the logtypes command is registered
 	found = false
 	for _, c := range rootCmd.Commands() {
@@ -37,7 +37,7 @@ func TestCommandInitialization(t *testing.T) {
 		}
 	}
 	assert.True(t, found, "logtypes command should be registered")
-	
+
 	// Test that the presets command is registered
 	found = false
 	for _, c := range rootCmd.Commands() {
@@ -60,29 +60,29 @@ func TestVersionCommandOutput(t *testing.T) {
 		commit = origCommit
 		date = origDate
 	}()
-	
+
 	// Set test values
 	version = "1.0.0"
 	commit = "abcdef"
 	date = "2024-01-01"
-	
+
 	// Create a buffer to capture output
 	oldStdout := os.Stdout
 	r, w, _ := os.Pipe()
 	os.Stdout = w
-	
+
 	// Execute the version command
 	versionCmd.Run(versionCmd, []string{})
-	
+
 	// Close the write end of the pipe to flush the buffer
 	w.Close()
 	os.Stdout = oldStdout
-	
+
 	// Read the output
 	var buf bytes.Buffer
 	io.Copy(&buf, r)
 	output := buf.String()
-	
+
 	// Verify output
 	assert.Contains(t, output, "ekslogs version 1.0.0")
 	assert.Contains(t, output, "commit: abcdef")
@@ -95,19 +95,19 @@ func TestLogTypesCommandOutput(t *testing.T) {
 	oldStdout := os.Stdout
 	r, w, _ := os.Pipe()
 	os.Stdout = w
-	
+
 	// Execute the logtypes command
 	logTypesCmd.Run(logTypesCmd, []string{})
-	
+
 	// Close the write end of the pipe to flush the buffer
 	w.Close()
 	os.Stdout = oldStdout
-	
+
 	// Read the output
 	var buf bytes.Buffer
 	io.Copy(&buf, r)
 	output := buf.String()
-	
+
 	// Verify output
 	assert.Contains(t, output, "Available log types")
 	assert.Contains(t, output, "api")
@@ -122,7 +122,7 @@ func TestLogTypesCommandOutput(t *testing.T) {
 func TestRootCommandFlags(t *testing.T) {
 	// Test that all expected flags are registered
 	flags := rootCmd.Flags()
-	
+
 	// Check required flags
 	assert.NotNil(t, flags.Lookup("region"))
 	assert.NotNil(t, flags.Lookup("start-time"))
@@ -143,18 +143,18 @@ func TestPreRunFunction(t *testing.T) {
 	defer func() {
 		limitSpecified = origLimitSpecified
 	}()
-	
+
 	// Reset value
 	limitSpecified = false
-	
+
 	// Create a mock command
 	cmd := rootCmd
-	
+
 	// Test case 1: Flag not changed
 	cmd.Flags().Changed("limit") // This doesn't actually mark it as changed
 	rootCmd.PreRun(cmd, []string{})
 	assert.False(t, limitSpecified)
-	
+
 	// Test case 2: Flag changed (simulated)
 	limitSpecified = true // Simulate flag changed
 	assert.True(t, limitSpecified)
@@ -400,7 +400,7 @@ func TestPresetApplication(t *testing.T) {
 			presetName:     "api-errors",
 			initialFilter:  "",
 			initialTypes:   nil,
-			expectedFilter: "ERROR", // From api-errors preset
+			expectedFilter: "ERROR",         // From api-errors preset
 			expectedTypes:  []string{"api"}, // From api-errors preset
 		},
 		{
@@ -416,7 +416,7 @@ func TestPresetApplication(t *testing.T) {
 			presetName:     "api-errors",
 			initialFilter:  "",
 			initialTypes:   []string{"audit"},
-			expectedFilter: "ERROR", // From api-errors preset
+			expectedFilter: "ERROR",           // From api-errors preset
 			expectedTypes:  []string{"audit"}, // Custom log types preserved
 		},
 	}
@@ -453,7 +453,7 @@ func TestPresetApplication(t *testing.T) {
 func TestErrorHandling(t *testing.T) {
 	// Create a test command that returns an error
 	testCmd := &cobra.Command{
-		Use:   "test",
+		Use: "test",
 		RunE: func(cmd *cobra.Command, args []string) error {
 			return errors.New("test error")
 		},
@@ -461,7 +461,7 @@ func TestErrorHandling(t *testing.T) {
 
 	// Execute the command
 	err := testCmd.Execute()
-	
+
 	// Verify that the error is returned
 	assert.Error(t, err)
 	assert.Equal(t, "test error", err.Error())
@@ -523,7 +523,7 @@ func TestRegionHandling(t *testing.T) {
 func TestDefaultTimeRange(t *testing.T) {
 	// Test case: both start and end time are nil
 	var startT, endT *string
-	
+
 	// Verify that default time range would be applied
 	if startT == nil && endT == nil {
 		assert.True(t, true, "Default time range should be applied")
