@@ -29,7 +29,7 @@ var (
 	filterPattern  string
 	presetName     string
 	limit          int32
-	limitSpecified bool // 制限が明示的に指定されたかどうか
+	limitSpecified bool // Whether the limit was explicitly specified by the user
 	verbose        bool
 	follow         bool
 	interval       time.Duration
@@ -179,12 +179,12 @@ Run 'ekslogs logtypes' for more detailed information about available log types.`
 			endT = &now
 		}
 
-		// ユーザーが明示的に制限を指定した場合のみ制限を適用
+		// Apply limit only if explicitly specified by the user
 		var effectiveLimit int32
 		if limitSpecified {
 			effectiveLimit = limit
 		} else {
-			effectiveLimit = 0 // 0は無制限を意味する
+			effectiveLimit = 0 // 0 means unlimited
 		}
 
 		err = client.GetLogs(ctx, clusterName, logTypes, startT, endT, fp, effectiveLimit, printLogEntry)
@@ -252,7 +252,7 @@ func init() {
 	rootCmd.Flags().DurationVar(&interval, "interval", 1*time.Second, "Update interval for tail mode")
 	rootCmd.Flags().BoolP("message-only", "m", false, "Output only the log message")
 
-	// フラグが指定されたかどうかを確認するためのPreRunを追加
+	// Add PreRun to check if flags were explicitly specified
 	rootCmd.PreRun = func(cmd *cobra.Command, args []string) {
 		limitSpecified = cmd.Flags().Changed("limit")
 	}

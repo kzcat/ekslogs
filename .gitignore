@@ -1,4 +1,4 @@
-# バイナリ
+# Binaries
 ekslogs
 bin/
 *.exe
@@ -6,24 +6,24 @@ bin/
 *.so
 *.dylib
 
-# テスト関連
+# Test related
 *.test
 *.out
 coverage.html
 
-# 依存関係
+# Dependencies
 /vendor/
 
-# IDE関連
+# IDE related
 .idea/
 .vscode/
 *.swp
 *.swo
 *~
 
-# OS関連
+# OS related
 .DS_Store
 Thumbs.db
 
-# その他
+# Others
 *.log
