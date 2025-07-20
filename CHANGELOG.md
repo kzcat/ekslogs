@@ -2,6 +2,12 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.1.3] - 2025-07-20
+
+### Fixed
+- Further improved Ctrl+C handling to ensure help messages are never displayed when exiting
+- Added top-level signal handler for more robust interrupt handling
+
 ## [0.1.2] - 2025-07-20
 
 ### Fixed
