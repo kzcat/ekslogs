@@ -43,11 +43,14 @@ vet:
 lint:
 	@echo "Running golangci-lint..."
 	@if command -v golangci-lint &> /dev/null; then \
-		golangci-lint run; \
+		echo "Using golangci-lint version: $$(golangci-lint --version)"; \
+		golangci-lint run --config=.golangci.yml; \
 	else \
 		echo "golangci-lint not found. Please install it first."; \
 		echo "See: https://golangci-lint.run/usage/install/"; \
+		echo "You can install it with: go install github.com/golangci/golangci-lint/cmd/golangci-lint@v1.54.2"; \
 		exit 1; \
+	fi
 	fi
 
 # クリーンアップ
@@ -59,8 +62,16 @@ clean:
 # 必要なツールのインストール
 install-tools:
 	@echo "Installing required tools..."
-	@go install github.com/golangci/golangci-lint/cmd/golangci-lint@latest
-	@go install github.com/pre-commit/pre-commit@latest
+	@echo "Installing golangci-lint..."
+	@go install github.com/golangci/golangci-lint/cmd/golangci-lint@v1.54.2
+	@echo "golangci-lint installed: $$(golangci-lint --version)"
+	@echo "Installing pre-commit..."
+	@if command -v pip3 &> /dev/null; then \
+		pip3 install pre-commit; \
+	else \
+		echo "pip3 not found. Please install Python3 and pip3 first."; \
+	fi
+	@echo "Installation complete."
 
 # pre-commit hookのインストール
 install-hooks:
