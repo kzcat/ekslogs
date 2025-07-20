@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file.
 
+## [Unreleased]
+
+### Changed
+- Swapped `-f` and `-F` flags for better usability:
+  - `-f` is now used for follow mode (tail functionality)
+  - `-F` is now used for filter pattern
+
 ## [0.1.3] - 2025-07-20
 
 ### Fixed

@@ -56,7 +56,7 @@ Log types: api, audit, auth, kcm, ccm, scheduler (or sched)
 If no log types are specified, all available log types will be retrieved.
 Run 'ekslogs logtypes' for more detailed information about available log types.`,
 	Example: `  ekslogs my-cluster                         # Get all logs from past hour
-  ekslogs my-cluster api audit -F -f "error" # Monitor API/audit errors in real-time
+  ekslogs my-cluster api audit -f -F "error" # Monitor API/audit errors in real-time
   ekslogs my-cluster -s "-1h" -e "now"       # Get logs from specific time range
   ekslogs my-cluster -p api-errors -F        # Monitor API errors in real-time using preset`,
 	Args: cobra.MinimumNArgs(1),
@@ -244,11 +244,11 @@ func init() {
 	rootCmd.Flags().StringVarP(&region, "region", "r", "", "AWS region")
 	rootCmd.Flags().StringVarP(&startTime, "start-time", "s", "", "Start time (RFC3339 format or relative: -1h, -15m, -30s, -2d)")
 	rootCmd.Flags().StringVarP(&endTime, "end-time", "e", "", "End time (RFC3339 format or relative: -1h, -15m, -30s, -2d)")
-	rootCmd.Flags().StringVarP(&filterPattern, "filter-pattern", "f", "", "Log filter pattern")
+	rootCmd.Flags().StringVarP(&filterPattern, "filter-pattern", "F", "", "Log filter pattern")
 	rootCmd.Flags().StringVarP(&presetName, "preset", "p", "", "Use filter preset (run 'ekslogs presets' to list available presets)")
 	rootCmd.Flags().Int32VarP(&limit, "limit", "l", 1000, "Maximum number of logs to retrieve")
 	rootCmd.Flags().BoolVarP(&verbose, "verbose", "v", false, "Verbose output")
-	rootCmd.Flags().BoolVarP(&follow, "follow", "F", false, "Continuously monitor logs (tail mode)")
+	rootCmd.Flags().BoolVarP(&follow, "follow", "f", false, "Continuously monitor logs (tail mode)")
 	rootCmd.Flags().DurationVar(&interval, "interval", 1*time.Second, "Update interval for tail mode")
 	rootCmd.Flags().BoolP("message-only", "m", false, "Output only the log message")
 

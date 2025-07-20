@@ -64,16 +64,16 @@ ekslogs my-cluster -s "-1h" -e "now"
 ### Real-time Monitoring (tail functionality)
 ```bash
 # Monitor logs in real-time
-ekslogs my-cluster -F
+ekslogs my-cluster -f
 
 # Monitor only error logs
-ekslogs my-cluster -F -f "ERROR"
+ekslogs my-cluster -f -F "ERROR"
 
 # Monitor specific log types
-ekslogs my-cluster api audit -F
+ekslogs my-cluster api audit -f
 
 # Specify update interval (default: 1 second)
-ekslogs my-cluster -F --interval 10s
+ekslogs my-cluster -f --interval 10s
 ```
 
 ### Using Filter Presets
@@ -91,7 +91,7 @@ ekslogs presets --advanced
 ekslogs my-cluster -p api-errors
 
 # Monitor API errors in real-time
-ekslogs my-cluster -p api-errors -F
+ekslogs my-cluster -p api-errors -f
 ```
 
 ### Common Filter Preset Examples
@@ -125,10 +125,10 @@ ekslogs my-cluster audit -m | jq '[.verb, .requestURI]'
 
 ```bash
 # Monitor authentication failures in real-time
-ekslogs my-cluster -p auth-failures -F
+ekslogs my-cluster -p auth-failures -f
 
 # Monitor advanced authentication issues
-ekslogs my-cluster -p auth-issues-adv -F
+ekslogs my-cluster -p auth-issues-adv -f
 ```
 
 ### Investigating Network Problems
@@ -138,7 +138,7 @@ ekslogs my-cluster -p auth-issues-adv -F
 ekslogs my-cluster -p network-issues -s "-3h"
 
 # Monitor network timeouts in real-time
-ekslogs my-cluster -p network-timeouts -F
+ekslogs my-cluster -p network-timeouts -f
 ```
 
 ### Debugging Scheduler Problems
@@ -148,7 +148,7 @@ ekslogs my-cluster -p network-timeouts -F
 ekslogs my-cluster -p pod-scheduling-failures
 
 # Monitor scheduler issues in real-time
-ekslogs my-cluster -p scheduler-issues -F
+ekslogs my-cluster -p scheduler-issues -f
 ```
 
 ### Security Auditing
@@ -158,7 +158,7 @@ ekslogs my-cluster -p scheduler-issues -F
 ekslogs my-cluster -p privileged-admin-actions
 
 # Monitor security events in real-time
-ekslogs my-cluster -p security-events -F
+ekslogs my-cluster -p security-events -f
 ```
 
 ## Options
@@ -168,12 +168,12 @@ ekslogs my-cluster -p security-events -F
 | `--region`         | `-r`  | AWS region                                                      | Auto-detect from AWS config, fallback to us-east-1 |
 | `--start-time`     | `-s`  | Start time (RFC3339 format or relative: -1h, -15m, -30s, -2d)   | 1 hour ago   |
 | `--end-time`       | `-e`  | End time (RFC3339 format or relative: -1h, -15m, -30s, -2d)     | Current time |
-| `--filter-pattern` | `-f`  | Log filter pattern                                              | -            |
+| `--filter-pattern` | `-F`  | Log filter pattern                                              | -            |
 | `--preset`         | `-p`  | Use filter preset (run 'ekslogs presets' to list available presets) | -         |
 | `--limit`          | `-l`  | Maximum number of logs to retrieve                              | 1000         |
 | `--message-only`   | `-m`  | Output only the log message                                     | false        |
 | `--verbose`        | `-v`  | Verbose output                                                  | false        |
-| `--follow`         | `-F`  | Real-time monitoring                                            | false        |
+| `--follow`         | `-f`  | Real-time monitoring                                            | false        |
 | `--interval`       | -     | Update interval for tail mode                                   | 1s           |
 
 ## Commands
