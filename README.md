@@ -19,6 +19,12 @@ For a complete list of changes and version history, see the [CHANGELOG](CHANGELO
 
 ## Installation
 
+### Using Homebrew
+```bash
+brew tap kzcat/ekslogs
+brew install ekslogs
+```
+
 ### Using Go Install
 ```bash
 go install github.com/kzcat/ekslogs@latest
