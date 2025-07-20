@@ -18,9 +18,9 @@ builds:
     binary: ekslogs
     ldflags:
       - -s -w
-      - -X main.version={{.Version}}
-      - -X main.commit={{.Commit}}
-      - -X main.date={{.Date}}
+      - -X github.com/kzcat/ekslogs/cmd.version={{.Version}}
+      - -X github.com/kzcat/ekslogs/cmd.commit={{.Commit}}
+      - -X github.com/kzcat/ekslogs/cmd.date={{.Date}}
 
 archives:
   - format: tar.gz

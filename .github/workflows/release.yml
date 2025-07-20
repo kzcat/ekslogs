@@ -5,6 +5,10 @@ on:
     tags:
       - 'v*'
 
+permissions:
+  contents: write  # リリース作成に必要な権限
+  packages: write  # パッケージ公開に必要な権限（必要な場合）
+
 jobs:
   release:
     runs-on: ubuntu-latest
