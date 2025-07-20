@@ -52,6 +52,7 @@ lint:
 		exit 1; \
 	fi
 	fi
+	fi
 
 # クリーンアップ
 clean:
