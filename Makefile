@@ -1,46 +1,46 @@
 .PHONY: build test lint fmt clean install-tools
 
-# バイナリ名
+# Binary name
 BINARY_NAME=ekslogs
-# バージョン情報
+# Version information
 VERSION=$(shell git describe --tags --always --dirty)
 COMMIT=$(shell git rev-parse HEAD)
 DATE=$(shell date -u +"%Y-%m-%dT%H:%M:%SZ")
-# ビルドフラグ
+# Build flags
 LDFLAGS=-ldflags "-X github.com/kzcat/ekslogs/cmd.version=$(VERSION) -X github.com/kzcat/ekslogs/cmd.commit=$(COMMIT) -X github.com/kzcat/ekslogs/cmd.date=$(DATE)"
 
-# デフォルトターゲット
+# Default target
 all: lint test build
 
-# ビルド
+# Build
 build:
 	@echo "Building $(BINARY_NAME)..."
 	@mkdir -p bin
 	@go build $(LDFLAGS) -o bin/$(BINARY_NAME)
 
-# テスト実行
+# Run tests
 test:
 	@echo "Running tests..."
 	@go test -v ./...
 
-# テストカバレッジ
+# Test coverage
 coverage:
 	@echo "Running tests with coverage..."
 	@go test -coverprofile=coverage.out ./...
 	@go tool cover -html=coverage.out -o coverage.html
 	@echo "Coverage report generated: coverage.html"
 
-# コード整形
+# Format code
 fmt:
 	@echo "Formatting code..."
 	@gofmt -l -w .
 
-# 静的解析
+# Static analysis
 vet:
 	@echo "Running go vet..."
 	@go vet ./...
 
-# golangci-lintによるリント
+# Lint with golangci-lint
 lint:
 	@echo "Running golangci-lint..."
 	@if command -v golangci-lint &> /dev/null; then \
@@ -53,14 +53,14 @@ lint:
 		exit 1; \
 	fi
 
-# クリーンアップ
+# Cleanup
 clean:
 	@echo "Cleaning up..."
 	@rm -f $(BINARY_NAME)
 	@rm -f bin/$(BINARY_NAME)
 	@rm -f coverage.out coverage.html
 
-# 必要なツールのインストール
+# Install required tools
 install-tools:
 	@echo "Installing required tools..."
 	@echo "Installing golangci-lint..."
@@ -74,7 +74,7 @@ install-tools:
 	fi
 	@echo "Installation complete."
 
-# pre-commit hookのインストール
+# Install pre-commit hooks
 install-hooks:
 	@echo "Installing pre-commit hooks..."
 	@cp .git/hooks/pre-commit .git/hooks/pre-commit.bak 2>/dev/null || true
@@ -82,7 +82,7 @@ install-hooks:
 	@chmod +x ./.git/hooks/pre-commit
 	@echo "Pre-commit hook installed successfully."
 
-# ヘルプ
+# Help
 help:
 	@echo "Available targets:"
 	@echo "  all          : Run lint, test, and build"
