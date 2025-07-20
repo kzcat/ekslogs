@@ -15,7 +15,8 @@ all: lint test build
 # ビルド
 build:
 	@echo "Building $(BINARY_NAME)..."
-	@go build $(LDFLAGS) -o $(BINARY_NAME)
+	@mkdir -p bin
+	@go build $(LDFLAGS) -o bin/$(BINARY_NAME)
 
 # テスト実行
 test:
@@ -56,6 +57,7 @@ lint:
 clean:
 	@echo "Cleaning up..."
 	@rm -f $(BINARY_NAME)
+	@rm -f bin/$(BINARY_NAME)
 	@rm -f coverage.out coverage.html
 
 # 必要なツールのインストール
