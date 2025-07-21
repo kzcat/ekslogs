@@ -14,6 +14,7 @@ All notable changes to this project will be documented in this file.
 - Enhanced error message highlighting in audit logs
 - Bold formatting for error messages, status codes, and failure states
 - Added highlighting for error reasons and status fields
+- Fixed JSON parsing for audit logs to properly highlight escaped error messages
 
 ## [0.1.5] - 2025-07-20
 

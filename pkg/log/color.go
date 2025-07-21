@@ -6,6 +6,7 @@ import (
 	"github.com/fatih/color"
 	"os"
 	"regexp"
+	"sort"
 	"strings"
 	"time"
 )
@@ -139,75 +140,143 @@ func (lc *LogColorizer) colorizeAuditLog(entry LogEntry) string {
 	level := color.New(color.FgBlue).SprintFunc()(entry.Level)
 
 	// For audit logs, try to parse the JSON and highlight specific fields
-	var auditData map[string]interface{}
 	message := entry.Message
 
 	if strings.HasPrefix(strings.TrimSpace(message), "{") {
+		// Try to parse the JSON
+		var auditData map[string]interface{}
 		err := json.Unmarshal([]byte(message), &auditData)
 		if err == nil {
-			// Format specific fields with colors
-			if verb, ok := auditData["verb"].(string); ok {
-				verbColor := color.New(color.FgMagenta).SprintFunc()
-				message = strings.Replace(message, fmt.Sprintf(`"verb":"%s"`, verb),
-					fmt.Sprintf(`"verb":"%s"`, verbColor(verb)), 1)
-			}
-
-			if uri, ok := auditData["requestURI"].(string); ok {
-				uriColor := color.New(color.FgGreen).SprintFunc()
-				message = strings.Replace(message, fmt.Sprintf(`"requestURI":"%s"`, uri),
-					fmt.Sprintf(`"requestURI":"%s"`, uriColor(uri)), 1)
-			}
-
-			// Highlight user information
-			if user, ok := auditData["user"].(map[string]interface{}); ok {
-				if username, ok := user["username"].(string); ok {
-					usernameColor := color.New(color.FgYellow).SprintFunc()
-					message = strings.Replace(message, fmt.Sprintf(`"username":"%s"`, username),
-						fmt.Sprintf(`"username":"%s"`, usernameColor(username)), 1)
-				}
-			}
-
-			// Highlight response status
-			if status, ok := auditData["responseStatus"].(map[string]interface{}); ok {
-				// Highlight error message
-				if errorMsg, ok := status["message"].(string); ok {
-					errorColor := color.New(color.FgRed, color.Bold).SprintFunc()
-					message = strings.Replace(message, fmt.Sprintf(`"message":"%s"`, errorMsg),
-						fmt.Sprintf(`"message":"%s"`, errorColor(errorMsg)), 1)
-				}
-
-				// Highlight error reason
-				if reason, ok := status["reason"].(string); ok {
-					reasonColor := color.New(color.FgRed).SprintFunc()
-					message = strings.Replace(message, fmt.Sprintf(`"reason":"%s"`, reason),
-						fmt.Sprintf(`"reason":"%s"`, reasonColor(reason)), 1)
-				}
-
-				// Highlight status code
-				if code, ok := status["code"].(float64); ok {
-					codeStr := fmt.Sprintf("%.0f", code)
-					codeColor := color.New(color.FgGreen)
-					if code >= 400 {
-						codeColor = color.New(color.FgRed, color.Bold)
-					}
-					message = strings.Replace(message, fmt.Sprintf(`"code":%s`, codeStr),
-						fmt.Sprintf(`"code":%s`, codeColor.Sprint(codeStr)), 1)
-				}
-
-				// Highlight status field
-				if statusField, ok := status["status"].(string); ok {
-					statusColor := color.New(color.FgGreen)
-					if statusField == "Failure" {
-						statusColor = color.New(color.FgRed, color.Bold)
-					}
-					message = strings.Replace(message, fmt.Sprintf(`"status":"%s"`, statusField),
-						fmt.Sprintf(`"status":"%s"`, statusColor.Sprint(statusField)), 1)
-				}
+			// Create a new colored version of the message
+			coloredMessage := lc.colorizeAuditJSON(auditData)
+			if coloredMessage != "" {
+				return fmt.Sprintf("%s [%s] [%s] %s", timestamp, level, component, coloredMessage)
 			}
 		}
 	}
 
 	return fmt.Sprintf("%s [%s] [%s] %s", timestamp, level, component, message)
+}
+
+// colorizeAuditJSON applies color formatting to audit log JSON data
+func (lc *LogColorizer) colorizeAuditJSON(auditData map[string]interface{}) string {
+	// Create a deep copy of the audit data to modify
+	coloredData := make(map[string]interface{})
+	for k, v := range auditData {
+		coloredData[k] = v
+	}
+
+	// Apply colors to specific fields
+	if verb, ok := coloredData["verb"].(string); ok {
+		coloredData["verb"] = color.New(color.FgMagenta).Sprint(verb)
+	}
+
+	if uri, ok := coloredData["requestURI"].(string); ok {
+		coloredData["requestURI"] = color.New(color.FgGreen).Sprint(uri)
+	}
+
+	// Handle user information
+	if user, ok := coloredData["user"].(map[string]interface{}); ok {
+		if username, ok := user["username"].(string); ok {
+			user["username"] = color.New(color.FgYellow).Sprint(username)
+		}
+	}
+
+	// Handle response status
+	if status, ok := coloredData["responseStatus"].(map[string]interface{}); ok {
+		// Create a copy of the status
+		coloredStatus := make(map[string]interface{})
+		for k, v := range status {
+			coloredStatus[k] = v
+		}
+
+		// Highlight error message
+		if errorMsg, ok := coloredStatus["message"].(string); ok {
+			coloredStatus["message"] = color.New(color.FgRed, color.Bold).Sprint(errorMsg)
+		}
+
+		// Highlight error reason
+		if reason, ok := coloredStatus["reason"].(string); ok {
+			coloredStatus["reason"] = color.New(color.FgRed).Sprint(reason)
+		}
+
+		// Highlight status field
+		if statusField, ok := coloredStatus["status"].(string); ok {
+			statusColor := color.New(color.FgGreen)
+			if statusField == "Failure" {
+				statusColor = color.New(color.FgRed, color.Bold)
+			}
+			coloredStatus["status"] = statusColor.Sprint(statusField)
+		}
+
+		// Highlight status code
+		if code, ok := coloredStatus["code"].(float64); ok {
+			codeColor := color.New(color.FgGreen)
+			if code >= 400 {
+				codeColor = color.New(color.FgRed, color.Bold)
+			}
+			coloredStatus["code"] = codeColor.Sprint(int(code))
+		}
+
+		// Replace the status with our colored version
+		coloredData["responseStatus"] = coloredStatus
+	}
+
+	// Convert the colored data back to a string
+	// We can't use json.Marshal because it would escape the ANSI color codes
+	// Instead, we'll build a custom string representation
+	return lc.formatColoredJSON(coloredData)
+}
+
+// formatColoredJSON formats a map as a JSON string, preserving ANSI color codes
+func (lc *LogColorizer) formatColoredJSON(data map[string]interface{}) string {
+	var parts []string
+
+	// Sort keys for consistent output
+	keys := make([]string, 0, len(data))
+	for k := range data {
+		keys = append(keys, k)
+	}
+	sort.Strings(keys)
+
+	for _, k := range keys {
+		v := data[k]
+		formattedValue := lc.formatJSONValue(v)
+		parts = append(parts, fmt.Sprintf(`"%s":%s`, k, formattedValue))
+	}
+
+	return "{" + strings.Join(parts, ",") + "}"
+}
+
+// formatJSONValue formats a value for JSON output, preserving ANSI color codes
+func (lc *LogColorizer) formatJSONValue(v interface{}) string {
+	switch val := v.(type) {
+	case string:
+		return fmt.Sprintf(`"%s"`, val)
+	case int:
+		return fmt.Sprintf("%d", val)
+	case float64:
+		return fmt.Sprintf("%g", val)
+	case bool:
+		return fmt.Sprintf("%t", val)
+	case nil:
+		return "null"
+	case map[string]interface{}:
+		return lc.formatColoredJSON(val)
+	case []interface{}:
+		var parts []string
+		for _, item := range val {
+			parts = append(parts, lc.formatJSONValue(item))
+		}
+		return "[" + strings.Join(parts, ",") + "]"
+	default:
+		// Fall back to standard JSON for unknown types
+		jsonBytes, err := json.Marshal(val)
+		if err != nil {
+			return fmt.Sprintf(`"%v"`, val)
+		}
+		return string(jsonBytes)
+	}
 }
 
 // colorizeAuthenticatorLog applies color formatting specific to authenticator logs
@@ -405,70 +474,12 @@ func (lc *LogColorizer) colorizeAPIMessage(message string, level string) string 
 // colorizeAuditMessage applies color formatting specific to audit messages
 func (lc *LogColorizer) colorizeAuditMessage(message string, level string) string {
 	// For audit logs, try to parse the JSON and highlight specific fields
-	var auditData map[string]interface{}
-
 	if strings.HasPrefix(strings.TrimSpace(message), "{") {
+		var auditData map[string]interface{}
 		err := json.Unmarshal([]byte(message), &auditData)
 		if err == nil {
-			// Format specific fields with colors
-			if verb, ok := auditData["verb"].(string); ok {
-				verbColor := color.New(color.FgMagenta).SprintFunc()
-				message = strings.Replace(message, fmt.Sprintf(`"verb":"%s"`, verb),
-					fmt.Sprintf(`"verb":"%s"`, verbColor(verb)), 1)
-			}
-
-			if uri, ok := auditData["requestURI"].(string); ok {
-				uriColor := color.New(color.FgGreen).SprintFunc()
-				message = strings.Replace(message, fmt.Sprintf(`"requestURI":"%s"`, uri),
-					fmt.Sprintf(`"requestURI":"%s"`, uriColor(uri)), 1)
-			}
-
-			// Highlight user information
-			if user, ok := auditData["user"].(map[string]interface{}); ok {
-				if username, ok := user["username"].(string); ok {
-					usernameColor := color.New(color.FgYellow).SprintFunc()
-					message = strings.Replace(message, fmt.Sprintf(`"username":"%s"`, username),
-						fmt.Sprintf(`"username":"%s"`, usernameColor(username)), 1)
-				}
-			}
-
-			// Highlight response status
-			if status, ok := auditData["responseStatus"].(map[string]interface{}); ok {
-				// Highlight error message
-				if errorMsg, ok := status["message"].(string); ok {
-					errorColor := color.New(color.FgRed, color.Bold).SprintFunc()
-					message = strings.Replace(message, fmt.Sprintf(`"message":"%s"`, errorMsg),
-						fmt.Sprintf(`"message":"%s"`, errorColor(errorMsg)), 1)
-				}
-
-				// Highlight error reason
-				if reason, ok := status["reason"].(string); ok {
-					reasonColor := color.New(color.FgRed).SprintFunc()
-					message = strings.Replace(message, fmt.Sprintf(`"reason":"%s"`, reason),
-						fmt.Sprintf(`"reason":"%s"`, reasonColor(reason)), 1)
-				}
-
-				// Highlight status code
-				if code, ok := status["code"].(float64); ok {
-					codeStr := fmt.Sprintf("%.0f", code)
-					codeColor := color.New(color.FgGreen)
-					if code >= 400 {
-						codeColor = color.New(color.FgRed, color.Bold)
-					}
-					message = strings.Replace(message, fmt.Sprintf(`"code":%s`, codeStr),
-						fmt.Sprintf(`"code":%s`, codeColor.Sprint(codeStr)), 1)
-				}
-
-				// Highlight status field
-				if statusField, ok := status["status"].(string); ok {
-					statusColor := color.New(color.FgGreen)
-					if statusField == "Failure" {
-						statusColor = color.New(color.FgRed, color.Bold)
-					}
-					message = strings.Replace(message, fmt.Sprintf(`"status":"%s"`, statusField),
-						fmt.Sprintf(`"status":"%s"`, statusColor.Sprint(statusField)), 1)
-				}
-			}
+			// Use the same JSON colorization as for full logs
+			return lc.colorizeAuditJSON(auditData)
 		}
 	}
 
