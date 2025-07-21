@@ -169,14 +169,39 @@ func (lc *LogColorizer) colorizeAuditLog(entry LogEntry) string {
 
 			// Highlight response status
 			if status, ok := auditData["responseStatus"].(map[string]interface{}); ok {
+				// Highlight error message
+				if errorMsg, ok := status["message"].(string); ok {
+					errorColor := color.New(color.FgRed, color.Bold).SprintFunc()
+					message = strings.Replace(message, fmt.Sprintf(`"message":"%s"`, errorMsg),
+						fmt.Sprintf(`"message":"%s"`, errorColor(errorMsg)), 1)
+				}
+
+				// Highlight error reason
+				if reason, ok := status["reason"].(string); ok {
+					reasonColor := color.New(color.FgRed).SprintFunc()
+					message = strings.Replace(message, fmt.Sprintf(`"reason":"%s"`, reason),
+						fmt.Sprintf(`"reason":"%s"`, reasonColor(reason)), 1)
+				}
+
+				// Highlight status code
 				if code, ok := status["code"].(float64); ok {
 					codeStr := fmt.Sprintf("%.0f", code)
 					codeColor := color.New(color.FgGreen)
 					if code >= 400 {
-						codeColor = color.New(color.FgRed)
+						codeColor = color.New(color.FgRed, color.Bold)
 					}
 					message = strings.Replace(message, fmt.Sprintf(`"code":%s`, codeStr),
 						fmt.Sprintf(`"code":%s`, codeColor.Sprint(codeStr)), 1)
+				}
+
+				// Highlight status field
+				if statusField, ok := status["status"].(string); ok {
+					statusColor := color.New(color.FgGreen)
+					if statusField == "Failure" {
+						statusColor = color.New(color.FgRed, color.Bold)
+					}
+					message = strings.Replace(message, fmt.Sprintf(`"status":"%s"`, statusField),
+						fmt.Sprintf(`"status":"%s"`, statusColor.Sprint(statusField)), 1)
 				}
 			}
 		}
@@ -409,14 +434,39 @@ func (lc *LogColorizer) colorizeAuditMessage(message string, level string) strin
 
 			// Highlight response status
 			if status, ok := auditData["responseStatus"].(map[string]interface{}); ok {
+				// Highlight error message
+				if errorMsg, ok := status["message"].(string); ok {
+					errorColor := color.New(color.FgRed, color.Bold).SprintFunc()
+					message = strings.Replace(message, fmt.Sprintf(`"message":"%s"`, errorMsg),
+						fmt.Sprintf(`"message":"%s"`, errorColor(errorMsg)), 1)
+				}
+
+				// Highlight error reason
+				if reason, ok := status["reason"].(string); ok {
+					reasonColor := color.New(color.FgRed).SprintFunc()
+					message = strings.Replace(message, fmt.Sprintf(`"reason":"%s"`, reason),
+						fmt.Sprintf(`"reason":"%s"`, reasonColor(reason)), 1)
+				}
+
+				// Highlight status code
 				if code, ok := status["code"].(float64); ok {
 					codeStr := fmt.Sprintf("%.0f", code)
 					codeColor := color.New(color.FgGreen)
 					if code >= 400 {
-						codeColor = color.New(color.FgRed)
+						codeColor = color.New(color.FgRed, color.Bold)
 					}
 					message = strings.Replace(message, fmt.Sprintf(`"code":%s`, codeStr),
 						fmt.Sprintf(`"code":%s`, codeColor.Sprint(codeStr)), 1)
+				}
+
+				// Highlight status field
+				if statusField, ok := status["status"].(string); ok {
+					statusColor := color.New(color.FgGreen)
+					if statusField == "Failure" {
+						statusColor = color.New(color.FgRed, color.Bold)
+					}
+					message = strings.Replace(message, fmt.Sprintf(`"status":"%s"`, statusField),
+						fmt.Sprintf(`"status":"%s"`, statusColor.Sprint(statusField)), 1)
 				}
 			}
 		}
