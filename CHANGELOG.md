@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file.
 
+## [Unreleased]
+
+### Added
+- Enhanced color output for different log types
+- New `--color` option to control color output (auto, always, never)
+- Automatic color detection based on terminal or pipe output
+
 ## [0.1.5] - 2025-07-20
 
 ### Added

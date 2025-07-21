@@ -449,7 +449,7 @@ func TestPrintLog(t *testing.T) {
 			os.Stdout = w
 
 			// Call the function
-			PrintLog(tt.logEntry, tt.messageOnly)
+			PrintLog(tt.logEntry, tt.messageOnly, NewColorConfig())
 
 			// Close the write end of the pipe to flush the buffer
 			if err := w.Close(); err != nil {

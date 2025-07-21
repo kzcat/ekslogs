@@ -181,6 +181,7 @@ ekslogs my-cluster -p security-events -f
 | `--verbose`        | `-v`  | Verbose output                                                  | false        |
 | `--follow`         | `-f`  | Real-time monitoring                                            | false        |
 | `--interval`       | -     | Update interval for tail mode                                   | 1s           |
+| `--color`          | -     | Color output mode: auto, always, never                          | auto         |
 
 ## Commands
 
