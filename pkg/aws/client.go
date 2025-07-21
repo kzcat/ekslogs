@@ -365,7 +365,7 @@ func contains(slice []string, item string) bool {
 	return false
 }
 
-func (c *EKSLogsClient) TailLogs(ctx context.Context, clusterName string, logTypes []string, filterPattern *string, interval time.Duration, messageOnly bool) error {
+func (c *EKSLogsClient) TailLogs(ctx context.Context, clusterName string, logTypes []string, filterPattern *string, interval time.Duration, messageOnly bool, colorConfig *log.ColorConfig) error {
 	logGroups, err := c.GetLogGroups(ctx, clusterName)
 	if err != nil {
 		return fmt.Errorf("failed to get log groups: %w\nPlease check your AWS credentials and permissions", err)
@@ -401,7 +401,7 @@ func (c *EKSLogsClient) TailLogs(ctx context.Context, clusterName string, logTyp
 			now := time.Now()
 
 			printAndTrackTimestamp := func(entry log.LogEntry) {
-				log.PrintLog(entry, messageOnly)
+				log.PrintLog(entry, messageOnly, colorConfig)
 				if entry.Timestamp.After(lastTimestamp) {
 					lastTimestamp = entry.Timestamp
 				}

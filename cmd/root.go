@@ -33,6 +33,7 @@ var (
 	verbose        bool
 	follow         bool
 	interval       time.Duration
+	colorMode      string
 
 	// Execute is the function that executes the root command
 	// It can be replaced in tests
@@ -120,6 +121,19 @@ Run 'ekslogs logtypes' for more detailed information about available log types.`
 			return err
 		}
 
+		// Set up color configuration
+		colorConfig := log.NewColorConfig()
+		switch colorMode {
+		case "auto":
+			colorConfig.Mode = log.ColorModeAuto
+		case "always":
+			colorConfig.Mode = log.ColorModeAlways
+		case "never":
+			colorConfig.Mode = log.ColorModeNever
+		default:
+			colorConfig.Mode = log.ColorModeAuto
+		}
+
 		if verbose {
 			color.Cyan("=== EKS Control Plane Logs CLI ===")
 			color.Cyan("Cluster: %s", clusterName)
@@ -139,14 +153,14 @@ Run 'ekslogs logtypes' for more detailed information about available log types.`
 		}
 
 		printLogEntry := func(entry log.LogEntry) {
-			log.PrintLog(entry, messageOnly)
+			log.PrintLog(entry, messageOnly, colorConfig)
 		}
 
 		if follow {
 			ctx, cancel := signal.NotifyContext(ctx, os.Interrupt, syscall.SIGTERM)
 			defer cancel()
 
-			err := client.TailLogs(ctx, clusterName, logTypes, fp, interval, messageOnly)
+			err := client.TailLogs(ctx, clusterName, logTypes, fp, interval, messageOnly, colorConfig)
 			// If context was cancelled (Ctrl+C), treat it as a normal exit
 			if err != nil && ctx.Err() == context.Canceled {
 				return nil
@@ -251,6 +265,7 @@ func init() {
 	rootCmd.Flags().BoolVarP(&follow, "follow", "f", false, "Continuously monitor logs (tail mode)")
 	rootCmd.Flags().DurationVar(&interval, "interval", 1*time.Second, "Update interval for tail mode")
 	rootCmd.Flags().BoolP("message-only", "m", false, "Output only the log message")
+	rootCmd.Flags().StringVar(&colorMode, "color", "auto", "Color output mode: auto, always, never")
 
 	// Add PreRun to check if flags were explicitly specified
 	rootCmd.PreRun = func(cmd *cobra.Command, args []string) {

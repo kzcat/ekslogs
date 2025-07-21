@@ -2,7 +2,6 @@ package log
 
 import (
 	"fmt"
-	"github.com/fatih/color"
 	"os"
 	"regexp"
 	"strconv"
@@ -194,7 +193,7 @@ func ExtractLogTypeFromStreamName(streamName string) string {
 	return ""
 }
 
-func PrintLog(log LogEntry, messageOnly bool) {
+func PrintLog(log LogEntry, messageOnly bool, colorConfig *ColorConfig) {
 	if messageOnly {
 		fmt.Println(log.Message)
 		// Flush stdout to ensure immediate output when piped
@@ -202,26 +201,9 @@ func PrintLog(log LogEntry, messageOnly bool) {
 		return
 	}
 
-	// Color settings
-	levelColor := color.New()
-	switch log.Level {
-	case "info":
-		levelColor = color.New(color.FgGreen)
-	case "warning":
-		levelColor = color.New(color.FgYellow)
-	case "error":
-		levelColor = color.New(color.FgRed)
-	case "fatal":
-		levelColor = color.New(color.FgHiRed)
-	}
-
-	timestamp := log.Timestamp.UTC().Format(time.RFC3339)
-	fmt.Printf("%s [%s] [%s] %s\n",
-		timestamp,
-		levelColor.SprintFunc()(log.Level),
-		color.CyanString(log.Component),
-		log.Message,
-	)
+	// Use the new colorizer
+	colorizer := NewLogColorizer(colorConfig)
+	fmt.Println(colorizer.ColorizeLog(log))
 
 	// Flush stdout to ensure immediate output when piped
 	_ = os.Stdout.Sync()
