@@ -194,15 +194,25 @@ func ExtractLogTypeFromStreamName(streamName string) string {
 }
 
 func PrintLog(log LogEntry, messageOnly bool, colorConfig *ColorConfig) {
+	// Use the colorizer
+	colorizer := NewLogColorizer(colorConfig)
+
 	if messageOnly {
-		fmt.Println(log.Message)
+		// Apply color to message only if colors are enabled
+		if colorConfig.ShouldUseColor() {
+			// Get the log type to determine which colorization to apply
+			logType := NormalizeLogType(ExtractLogTypeFromStreamName(log.LogStream))
+			coloredMessage := colorizer.ColorizeMessageOnly(log.Message, logType, log.Level)
+			fmt.Println(coloredMessage)
+		} else {
+			fmt.Println(log.Message)
+		}
 		// Flush stdout to ensure immediate output when piped
 		_ = os.Stdout.Sync()
 		return
 	}
 
-	// Use the new colorizer
-	colorizer := NewLogColorizer(colorConfig)
+	// Full log output with colors
 	fmt.Println(colorizer.ColorizeLog(log))
 
 	// Flush stdout to ensure immediate output when piped
