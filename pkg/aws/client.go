@@ -380,6 +380,8 @@ func (c *EKSLogsClient) TailLogs(ctx context.Context, clusterName string, logTyp
 	}
 
 	lastTimestamp := time.Now().Add(-1 * time.Minute) // Start from 1 minute ago
+	var mu sync.Mutex                                 // Mutex to protect lastTimestamp and prevent duplicate prints
+	seenEntries := make(map[string]bool)              // Track seen log entries to prevent duplicates
 
 	if c.verbose {
 		fmt.Printf("Starting tail mode with interval: %v\n", interval)
@@ -401,8 +403,21 @@ func (c *EKSLogsClient) TailLogs(ctx context.Context, clusterName string, logTyp
 			now := time.Now()
 
 			printAndTrackTimestamp := func(entry log.LogEntry) {
-				log.PrintLog(entry, messageOnly, colorConfig)
+				mu.Lock()
+				defer mu.Unlock()
+
+				// Create a unique key for this log entry to prevent duplicates
+				entryKey := fmt.Sprintf("%d-%s-%s", entry.Timestamp.UnixNano(), entry.LogStream, entry.Message)
+
+				// Skip if we've already seen this entry
+				if seenEntries[entryKey] {
+					return
+				}
+
+				// Only print entries newer than our last timestamp
 				if entry.Timestamp.After(lastTimestamp) {
+					log.PrintLog(entry, messageOnly, colorConfig)
+					seenEntries[entryKey] = true
 					lastTimestamp = entry.Timestamp
 				}
 			}
@@ -416,6 +431,13 @@ func (c *EKSLogsClient) TailLogs(ctx context.Context, clusterName string, logTyp
 				color.Red("Log retrieval error: %v", err)
 				continue
 			}
+
+			// Clean up old entries from the seen map to prevent memory growth
+			mu.Lock()
+			if len(seenEntries) > 1000 {
+				seenEntries = make(map[string]bool)
+			}
+			mu.Unlock()
 		}
 	}
 }
