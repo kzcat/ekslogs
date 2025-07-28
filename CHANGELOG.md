@@ -4,6 +4,8 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+## [0.1.6] - 2025-07-28
+
 ### Added
 - Enhanced color output for different log types
 - New `--color` option to control color output (auto, always, never)
@@ -14,6 +16,11 @@ All notable changes to this project will be documented in this file.
 - Enhanced error message highlighting in audit logs
 - Bold formatting for error messages, status codes, and failure states
 - Added highlighting for error reasons and status fields
+
+### Fixed
+- Fixed duplicate log output in follow mode (`-f` flag)
+- Added thread-safe timestamp tracking to prevent race conditions
+- Implemented deduplication mechanism to prevent duplicate log entries
 - Fixed JSON parsing for audit logs to properly highlight escaped error messages
 
 ## [0.1.5] - 2025-07-20
