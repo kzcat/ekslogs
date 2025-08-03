@@ -4,6 +4,23 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+## [0.1.8] - 2025-08-04
+
+### Added
+- New `-I, --ignore-filter-pattern` flag for excluding logs matching specific patterns
+- Support for combining include (`-F`) and exclude (`-I`) filter patterns
+- Enhanced filter pattern processing with automatic quoting for simple text searches
+
+### Improved
+- More flexible log filtering capabilities
+- Better CloudWatch Logs filter pattern handling
+- Comprehensive test coverage for filter pattern combinations
+
+### Examples
+- `ekslogs my-cluster -F "volume" -I "health"` - Include volume logs but exclude health checks
+- `ekslogs my-cluster -F "error" -I "healthcheck"` - Include error logs but exclude healthcheck errors
+- `ekslogs my-cluster -I "debug"` - Exclude all debug logs
+
 ## [0.1.7] - 2025-07-28
 
 ### Fixed

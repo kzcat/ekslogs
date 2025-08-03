@@ -18,22 +18,23 @@ import (
 )
 
 var (
-	version        = "dev"
-	commit         = "none"
-	date           = "unknown"
-	clusterName    string
-	region         string
-	logTypes       []string
-	startTime      string
-	endTime        string
-	filterPattern  string
-	presetName     string
-	limit          int32
-	limitSpecified bool // Whether the limit was explicitly specified by the user
-	verbose        bool
-	follow         bool
-	interval       time.Duration
-	colorMode      string
+	version             = "dev"
+	commit              = "none"
+	date                = "unknown"
+	clusterName         string
+	region              string
+	logTypes            []string
+	startTime           string
+	endTime             string
+	filterPattern       string
+	ignoreFilterPattern string
+	presetName          string
+	limit               int32
+	limitSpecified      bool // Whether the limit was explicitly specified by the user
+	verbose             bool
+	follow              bool
+	interval            time.Duration
+	colorMode           string
 
 	// Execute is the function that executes the root command
 	// It can be replaced in tests
@@ -59,7 +60,8 @@ Run 'ekslogs logtypes' for more detailed information about available log types.`
 	Example: `  ekslogs my-cluster                         # Get all logs from past hour
   ekslogs my-cluster api audit -f -F "error" # Monitor API/audit errors in real-time
   ekslogs my-cluster -s "-1h" -e "now"       # Get logs from specific time range
-  ekslogs my-cluster -p api-errors -F        # Monitor API errors in real-time using preset`,
+  ekslogs my-cluster -p api-errors -F        # Monitor API errors in real-time using preset
+  ekslogs my-cluster -F "volume" -I "health" # Include volume logs but exclude health checks`,
 	Args: cobra.MinimumNArgs(1),
 	RunE: func(cmd *cobra.Command, args []string) error {
 		clusterName = args[0]
@@ -148,32 +150,81 @@ Run 'ekslogs logtypes' for more detailed information about available log types.`
 		}
 
 		var fp *string
-		if filterPattern != "" {
-			if verbose {
-				fmt.Printf("Original filter pattern: '%s'\n", filterPattern)
-			}
-			// CloudWatch Logs filter patterns for simple text search should be quoted
-			// if they contain special characters or spaces
-			if !strings.HasPrefix(filterPattern, "\"") && !strings.HasSuffix(filterPattern, "\"") {
-				// Check if it's a simple text search (no special CloudWatch Logs syntax)
-				if !strings.Contains(filterPattern, "{") && !strings.Contains(filterPattern, "[") &&
-					!strings.Contains(filterPattern, "?") && !strings.Contains(filterPattern, "*") {
-					quotedPattern := fmt.Sprintf("\"%s\"", filterPattern)
-					fp = &quotedPattern
-					if verbose {
-						fmt.Printf("Quoted filter pattern: %s\n", quotedPattern)
+		if filterPattern != "" || ignoreFilterPattern != "" {
+			var combinedPattern string
+
+			// Process include filter pattern
+			if filterPattern != "" {
+				if verbose {
+					fmt.Printf("Original filter pattern: '%s'\n", filterPattern)
+				}
+				// CloudWatch Logs filter patterns for simple text search should be quoted
+				// if they contain special characters or spaces
+				if !strings.HasPrefix(filterPattern, "\"") && !strings.HasSuffix(filterPattern, "\"") {
+					// Check if it's a simple text search (no special CloudWatch Logs syntax)
+					if !strings.Contains(filterPattern, "{") && !strings.Contains(filterPattern, "[") &&
+						!strings.Contains(filterPattern, "?") && !strings.Contains(filterPattern, "*") &&
+						!strings.Contains(filterPattern, "-") {
+						combinedPattern = fmt.Sprintf("\"%s\"", filterPattern)
+						if verbose {
+							fmt.Printf("Quoted filter pattern: %s\n", combinedPattern)
+						}
+					} else {
+						combinedPattern = filterPattern
+						if verbose {
+							fmt.Printf("Using original filter pattern: %s\n", filterPattern)
+						}
 					}
 				} else {
-					fp = &filterPattern
+					combinedPattern = filterPattern
 					if verbose {
-						fmt.Printf("Using original filter pattern: %s\n", filterPattern)
+						fmt.Printf("Using already quoted filter pattern: %s\n", filterPattern)
 					}
 				}
-			} else {
-				fp = &filterPattern
+			}
+
+			// Process ignore filter pattern
+			if ignoreFilterPattern != "" {
 				if verbose {
-					fmt.Printf("Using already quoted filter pattern: %s\n", filterPattern)
+					fmt.Printf("Original ignore filter pattern: '%s'\n", ignoreFilterPattern)
 				}
+				var ignorePattern string
+				// CloudWatch Logs uses '-' prefix for exclusion
+				if !strings.HasPrefix(ignoreFilterPattern, "\"") && !strings.HasSuffix(ignoreFilterPattern, "\"") {
+					// Check if it's a simple text search (no special CloudWatch Logs syntax)
+					if !strings.Contains(ignoreFilterPattern, "{") && !strings.Contains(ignoreFilterPattern, "[") &&
+						!strings.Contains(ignoreFilterPattern, "?") && !strings.Contains(ignoreFilterPattern, "*") &&
+						!strings.Contains(ignoreFilterPattern, "-") {
+						ignorePattern = fmt.Sprintf("-\"%s\"", ignoreFilterPattern)
+						if verbose {
+							fmt.Printf("Quoted ignore filter pattern: %s\n", ignorePattern)
+						}
+					} else {
+						ignorePattern = fmt.Sprintf("-%s", ignoreFilterPattern)
+						if verbose {
+							fmt.Printf("Using original ignore filter pattern with '-' prefix: %s\n", ignorePattern)
+						}
+					}
+				} else {
+					ignorePattern = fmt.Sprintf("-%s", ignoreFilterPattern)
+					if verbose {
+						fmt.Printf("Using already quoted ignore filter pattern with '-' prefix: %s\n", ignorePattern)
+					}
+				}
+
+				// Combine include and ignore patterns
+				if combinedPattern != "" {
+					combinedPattern = fmt.Sprintf("%s %s", combinedPattern, ignorePattern)
+				} else {
+					combinedPattern = ignorePattern
+				}
+				if verbose {
+					fmt.Printf("Combined filter pattern: %s\n", combinedPattern)
+				}
+			}
+
+			if combinedPattern != "" {
+				fp = &combinedPattern
 			}
 		}
 
@@ -284,6 +335,7 @@ func init() {
 	rootCmd.Flags().StringVarP(&startTime, "start-time", "s", "", "Start time (RFC3339 format or relative: -1h, -15m, -30s, -2d)")
 	rootCmd.Flags().StringVarP(&endTime, "end-time", "e", "", "End time (RFC3339 format or relative: -1h, -15m, -30s, -2d)")
 	rootCmd.Flags().StringVarP(&filterPattern, "filter-pattern", "F", "", "Log filter pattern")
+	rootCmd.Flags().StringVarP(&ignoreFilterPattern, "ignore-filter-pattern", "I", "", "Log ignore filter pattern (exclude logs matching this pattern)")
 	rootCmd.Flags().StringVarP(&presetName, "preset", "p", "", "Use filter preset (run 'ekslogs presets' to list available presets)")
 	rootCmd.Flags().Int32VarP(&limit, "limit", "l", 1000, "Maximum number of logs to retrieve")
 	rootCmd.Flags().BoolVarP(&verbose, "verbose", "v", false, "Verbose output")

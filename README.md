@@ -75,6 +75,9 @@ ekslogs my-cluster -f
 # Monitor only error logs
 ekslogs my-cluster -f -F "ERROR"
 
+# Monitor error logs but exclude health checks
+ekslogs my-cluster -f -F "ERROR" -I "health"
+
 # Monitor specific log types
 ekslogs my-cluster api audit -f
 
@@ -123,6 +126,12 @@ ekslogs my-cluster | grep "ERROR"
 
 # Filter and process audit logs
 ekslogs my-cluster audit -m | jq '[.verb, .requestURI]'
+
+# Include volume logs but exclude health checks
+ekslogs my-cluster -F "volume" -I "health"
+
+# Exclude debug logs entirely
+ekslogs my-cluster -I "debug"
 ```
 
 ## Advanced Usage Examples
@@ -175,6 +184,7 @@ ekslogs my-cluster -p security-events -f
 | `--start-time`     | `-s`  | Start time (RFC3339 format or relative: -1h, -15m, -30s, -2d)   | 1 hour ago   |
 | `--end-time`       | `-e`  | End time (RFC3339 format or relative: -1h, -15m, -30s, -2d)     | Current time |
 | `--filter-pattern` | `-F`  | Log filter pattern                                              | -            |
+| `--ignore-filter-pattern` | `-I`  | Log ignore filter pattern (exclude logs matching this pattern) | -            |
 | `--preset`         | `-p`  | Use filter preset (run 'ekslogs presets' to list available presets) | -         |
 | `--limit`          | `-l`  | Maximum number of logs to retrieve                              | 1000         |
 | `--message-only`   | `-m`  | Output only the log message                                     | false        |
