@@ -4,7 +4,7 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
-## [0.1.8] - 2025-08-04
+## [0.1.9] - 2025-08-04
 
 ### Added
 - New `-I, --ignore-filter-pattern` flag for excluding logs matching specific patterns
