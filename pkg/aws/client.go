@@ -206,6 +206,9 @@ Run 'ekslogs logtypes' for more information about available log types`,
 			}
 			if filterPattern != nil {
 				input.FilterPattern = filterPattern
+				if c.verbose {
+					fmt.Printf("Applying filter pattern: '%s' to log group: %s\n", *filterPattern, lg)
+				}
 			}
 
 			// Use pagination to retrieve all log events

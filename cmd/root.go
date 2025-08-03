@@ -149,7 +149,32 @@ Run 'ekslogs logtypes' for more detailed information about available log types.`
 
 		var fp *string
 		if filterPattern != "" {
-			fp = &filterPattern
+			if verbose {
+				fmt.Printf("Original filter pattern: '%s'\n", filterPattern)
+			}
+			// CloudWatch Logs filter patterns for simple text search should be quoted
+			// if they contain special characters or spaces
+			if !strings.HasPrefix(filterPattern, "\"") && !strings.HasSuffix(filterPattern, "\"") {
+				// Check if it's a simple text search (no special CloudWatch Logs syntax)
+				if !strings.Contains(filterPattern, "{") && !strings.Contains(filterPattern, "[") &&
+					!strings.Contains(filterPattern, "?") && !strings.Contains(filterPattern, "*") {
+					quotedPattern := fmt.Sprintf("\"%s\"", filterPattern)
+					fp = &quotedPattern
+					if verbose {
+						fmt.Printf("Quoted filter pattern: %s\n", quotedPattern)
+					}
+				} else {
+					fp = &filterPattern
+					if verbose {
+						fmt.Printf("Using original filter pattern: %s\n", filterPattern)
+					}
+				}
+			} else {
+				fp = &filterPattern
+				if verbose {
+					fmt.Printf("Using already quoted filter pattern: %s\n", filterPattern)
+				}
+			}
 		}
 
 		printLogEntry := func(entry log.LogEntry) {
