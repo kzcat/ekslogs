@@ -4,6 +4,28 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+## [0.1.10] - 2025-08-04
+
+### Added
+- Support for multiple `-F` flags with AND condition (all patterns must match)
+- Support for multiple `-I` flags with OR condition (any pattern excludes logs)
+- Enhanced filter pattern handling with string arrays instead of single strings
+- New helper functions `buildCombinedFilterPattern()` and `processFilterPattern()`
+
+### Improved
+- More flexible and powerful log filtering capabilities
+- Better CloudWatch Logs filter syntax generation for complex patterns
+- Comprehensive test coverage for multiple filter pattern scenarios
+- Updated documentation with detailed examples of multiple filter usage
+
+### Examples
+- `ekslogs my-cluster -F "error" -F "timeout"` - Include logs with both error AND timeout
+- `ekslogs my-cluster -I "debug" -I "info"` - Exclude logs with debug OR info
+- `ekslogs my-cluster -F "error" -F "warning" -I "debug" -I "info"` - Include errors AND warnings, exclude debug OR info
+
+### Backward Compatibility
+- Fully backward compatible with existing single filter pattern usage
+
 ## [0.1.9] - 2025-08-04
 
 ### Added
