@@ -78,6 +78,9 @@ ekslogs my-cluster -f -F "ERROR"
 # Monitor error logs but exclude health checks
 ekslogs my-cluster -f -F "ERROR" -I "health"
 
+# Monitor errors AND warnings, but exclude debug OR info logs
+ekslogs my-cluster -f -F "error" -F "warning" -I "debug" -I "info"
+
 # Monitor specific log types
 ekslogs my-cluster api audit -f
 
@@ -116,6 +119,40 @@ ekslogs my-cluster -p api-errors -f
 | memory-pressure          | Memory pressure and OOM events                | api, kcm                 |
 | network-timeouts         | Network timeout issues                        | api, kcm, ccm            |
 
+### Multiple Filter Patterns
+
+You can specify multiple filter patterns for more precise log filtering:
+
+#### Include Patterns (AND condition)
+Multiple `-F` flags create an AND condition - logs must match ALL patterns:
+```bash
+# Show logs that contain BOTH "error" AND "timeout"
+ekslogs my-cluster -F "error" -F "timeout"
+
+# Show logs that contain "volume" AND "persistent" AND "claim"
+ekslogs my-cluster -F "volume" -F "persistent" -F "claim"
+```
+
+#### Exclude Patterns (OR condition)
+Multiple `-I` flags create an OR condition - logs matching ANY pattern are excluded:
+```bash
+# Exclude logs containing "debug" OR "info" OR "trace"
+ekslogs my-cluster -I "debug" -I "info" -I "trace"
+
+# Exclude health checks OR readiness probes
+ekslogs my-cluster -I "healthcheck" -I "readiness"
+```
+
+#### Combining Include and Exclude Patterns
+You can combine both types for complex filtering:
+```bash
+# Include errors AND warnings, but exclude debug OR info
+ekslogs my-cluster -F "error" -F "warning" -I "debug" -I "info"
+
+# Include volume-related logs, but exclude health checks OR debug messages
+ekslogs my-cluster -F "volume" -I "health" -I "debug"
+```
+
 ### Output Formatting and Filtering
 ```bash
 # Output only the message part
@@ -132,6 +169,12 @@ ekslogs my-cluster -F "volume" -I "health"
 
 # Exclude debug logs entirely
 ekslogs my-cluster -I "debug"
+
+# Multiple include patterns (AND condition)
+ekslogs my-cluster -F "error" -F "timeout"
+
+# Multiple exclude patterns (OR condition)  
+ekslogs my-cluster -I "debug" -I "info" -I "trace"
 ```
 
 ## Advanced Usage Examples
@@ -183,8 +226,8 @@ ekslogs my-cluster -p security-events -f
 | `--region`         | `-r`  | AWS region                                                      | Auto-detect from AWS config, fallback to us-east-1 |
 | `--start-time`     | `-s`  | Start time (RFC3339 format or relative: -1h, -15m, -30s, -2d)   | 1 hour ago   |
 | `--end-time`       | `-e`  | End time (RFC3339 format or relative: -1h, -15m, -30s, -2d)     | Current time |
-| `--filter-pattern` | `-F`  | Log filter pattern                                              | -            |
-| `--ignore-filter-pattern` | `-I`  | Log ignore filter pattern (exclude logs matching this pattern) | -            |
+| `--filter-pattern` | `-F`  | Log filter pattern (can be specified multiple times for AND condition) | -            |
+| `--ignore-filter-pattern` | `-I`  | Log ignore filter pattern (can be specified multiple times for OR condition) | -            |
 | `--preset`         | `-p`  | Use filter preset (run 'ekslogs presets' to list available presets) | -         |
 | `--limit`          | `-l`  | Maximum number of logs to retrieve                              | 1000         |
 | `--message-only`   | `-m`  | Output only the log message                                     | false        |
