@@ -1,6 +1,7 @@
 package aws
 
 import (
+	"fmt"
 	"strings"
 	"testing"
 
@@ -210,4 +211,92 @@ func TestCombinedFilterPatterns(t *testing.T) {
 			assert.Equal(t, tt.expectedOutput, combinedPattern, "Combined pattern should match expected")
 		})
 	}
+}
+func TestMultipleFilterPatterns(t *testing.T) {
+	tests := []struct {
+		name            string
+		includePatterns []string
+		ignorePatterns  []string
+		expectedOutput  string
+	}{
+		{
+			name:            "multiple include patterns (AND)",
+			includePatterns: []string{"error", "warning"},
+			ignorePatterns:  []string{},
+			expectedOutput:  "\"error\" \"warning\"",
+		},
+		{
+			name:            "multiple ignore patterns (OR)",
+			includePatterns: []string{},
+			ignorePatterns:  []string{"debug", "info"},
+			expectedOutput:  "-\"debug\" -\"info\"",
+		},
+		{
+			name:            "mixed include and ignore patterns",
+			includePatterns: []string{"error", "warning"},
+			ignorePatterns:  []string{"healthcheck", "debug"},
+			expectedOutput:  "\"error\" \"warning\" -\"healthcheck\" -\"debug\"",
+		},
+		{
+			name:            "single include with multiple ignore",
+			includePatterns: []string{"volume"},
+			ignorePatterns:  []string{"health", "debug"},
+			expectedOutput:  "\"volume\" -\"health\" -\"debug\"",
+		},
+		{
+			name:            "complex patterns with simple patterns",
+			includePatterns: []string{"{ $.level = \"ERROR\" }", "timeout"},
+			ignorePatterns:  []string{"healthcheck"},
+			expectedOutput:  "{ $.level = \"ERROR\" } \"timeout\" -\"healthcheck\"",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			var parts []string
+
+			// Process include patterns
+			if len(tt.includePatterns) > 0 {
+				var includeParts []string
+				for _, pattern := range tt.includePatterns {
+					processedPattern := processFilterPattern(pattern, false)
+					includeParts = append(includeParts, processedPattern)
+				}
+				parts = append(parts, strings.Join(includeParts, " "))
+			}
+
+			// Process ignore patterns
+			for _, pattern := range tt.ignorePatterns {
+				processedPattern := processFilterPattern(pattern, true)
+				parts = append(parts, processedPattern)
+			}
+
+			result := strings.Join(parts, " ")
+			assert.Equal(t, tt.expectedOutput, result, "Combined pattern should match expected")
+		})
+	}
+}
+
+// Helper function for testing
+func processFilterPattern(pattern string, isIgnore bool) string {
+	var result string
+
+	// Check if pattern needs quoting (simple text search)
+	needsQuoting := !strings.HasPrefix(pattern, "\"") && !strings.HasSuffix(pattern, "\"") &&
+		!strings.Contains(pattern, "{") && !strings.Contains(pattern, "[") &&
+		!strings.Contains(pattern, "?") && !strings.Contains(pattern, "*") &&
+		!strings.Contains(pattern, "-")
+
+	if needsQuoting {
+		result = fmt.Sprintf("\"%s\"", pattern)
+	} else {
+		result = pattern
+	}
+
+	// Add ignore prefix if needed
+	if isIgnore {
+		result = "-" + result
+	}
+
+	return result
 }

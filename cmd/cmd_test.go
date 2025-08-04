@@ -3,8 +3,10 @@ package cmd
 import (
 	"bytes"
 	"errors"
+	"fmt"
 	"io"
 	"os"
+	"strings"
 	"testing"
 
 	"github.com/kzcat/ekslogs/pkg/filter"
@@ -171,9 +173,9 @@ func TestPreRunFunction(t *testing.T) {
 // TestFilterPatternHandling tests the filter pattern handling logic
 func TestFilterPatternHandling(t *testing.T) {
 	// Save original values to restore after test
-	origFilterPattern := filterPattern
+	origFilterPatterns := filterPatterns
 	defer func() {
-		filterPattern = origFilterPattern
+		filterPatterns = origFilterPatterns
 	}()
 
 	// Test cases
@@ -197,18 +199,33 @@ func TestFilterPatternHandling(t *testing.T) {
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
 			// Set filter pattern
-			filterPattern = tc.initialPattern
+			if tc.initialPattern != "" {
+				filterPatterns = []string{tc.initialPattern}
+			} else {
+				filterPatterns = []string{}
+			}
 
 			// Create pointer if needed
 			var fp *string
-			if filterPattern != "" {
-				fp = &filterPattern
+			if len(filterPatterns) > 0 {
+				combinedPattern := buildCombinedFilterPattern(filterPatterns, []string{}, false)
+				if combinedPattern != "" {
+					fp = &combinedPattern
+				}
 			}
 
 			// Verify pointer
 			if tc.expectedPointer {
 				assert.NotNil(t, fp)
-				assert.Equal(t, tc.initialPattern, *fp)
+				// For simple text patterns, they should be quoted
+				expectedPattern := tc.initialPattern
+				if !strings.HasPrefix(expectedPattern, "\"") && !strings.HasSuffix(expectedPattern, "\"") &&
+					!strings.Contains(expectedPattern, "{") && !strings.Contains(expectedPattern, "[") &&
+					!strings.Contains(expectedPattern, "?") && !strings.Contains(expectedPattern, "*") &&
+					!strings.Contains(expectedPattern, "-") {
+					expectedPattern = fmt.Sprintf("\"%s\"", expectedPattern)
+				}
+				assert.Equal(t, expectedPattern, *fp)
 			} else {
 				assert.Nil(t, fp)
 			}
@@ -390,11 +407,11 @@ func TestPresetsCommandFlags(t *testing.T) {
 func TestPresetApplication(t *testing.T) {
 	// Save original values to restore after test
 	origPresetName := presetName
-	origFilterPattern := filterPattern
+	origFilterPatterns := filterPatterns
 	origLogTypes := logTypes
 	defer func() {
 		presetName = origPresetName
-		filterPattern = origFilterPattern
+		filterPatterns = origFilterPatterns
 		logTypes = origLogTypes
 	}()
 
@@ -437,7 +454,11 @@ func TestPresetApplication(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			// Reset values
 			presetName = tc.presetName
-			filterPattern = tc.initialFilter
+			if tc.initialFilter != "" {
+				filterPatterns = []string{tc.initialFilter}
+			} else {
+				filterPatterns = []string{}
+			}
 			logTypes = tc.initialTypes
 
 			// Get the preset
@@ -445,8 +466,8 @@ func TestPresetApplication(t *testing.T) {
 			assert.True(t, exists)
 
 			// Apply preset filter pattern if no custom filter pattern is provided
-			if filterPattern == "" {
-				filterPattern = preset.Pattern
+			if len(filterPatterns) == 0 {
+				filterPatterns = []string{preset.Pattern}
 			}
 
 			// Apply preset log types if no custom log types are provided
@@ -455,7 +476,11 @@ func TestPresetApplication(t *testing.T) {
 			}
 
 			// Verify results
-			assert.Equal(t, tc.expectedFilter, filterPattern)
+			if tc.expectedFilter != "" {
+				assert.Equal(t, []string{tc.expectedFilter}, filterPatterns)
+			} else {
+				assert.Equal(t, []string{}, filterPatterns)
+			}
 			assert.Equal(t, tc.expectedTypes, logTypes)
 		})
 	}
