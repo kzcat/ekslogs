@@ -235,6 +235,11 @@ Run 'ekslogs logtypes' for more information about available log types`,
 
 				resp, err := c.logsClient.FilterLogEvents(ctx, input)
 				if err != nil {
+					if c.verbose {
+						fmt.Printf("Error details for log group '%s': %v\n", lg, err)
+						fmt.Printf("Request parameters: StartTime=%v, EndTime=%v, FilterPattern=%v\n",
+							startTime, endTime, filterPattern)
+					}
 					errChan <- fmt.Errorf("warning: failed to get logs from log group '%s': %v", lg, err)
 					return
 				}
@@ -275,7 +280,7 @@ Run 'ekslogs logtypes' for more information about available log types`,
 				}
 
 				// If no more pages, break the loop
-				if resp.NextToken == nil || len(resp.Events) == 0 {
+				if resp.NextToken == nil {
 					break
 				}
 
