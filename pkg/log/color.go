@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"github.com/fatih/color"
+	"golang.org/x/term"
 	"os"
 	"regexp"
 	"sort"
@@ -52,8 +53,8 @@ func (c *ColorConfig) ShouldUseColor() bool {
 
 // isTerminal checks if the given file is a terminal
 func isTerminal(file *os.File) bool {
-	// Use the IsTerminal function from the color package
-	return !color.NoColor
+	// Use golang.org/x/term to properly detect terminal
+	return term.IsTerminal(int(file.Fd()))
 }
 
 // LogColorizer provides rich color formatting for logs
@@ -63,6 +64,16 @@ type LogColorizer struct {
 
 // NewLogColorizer creates a new LogColorizer
 func NewLogColorizer(config *ColorConfig) *LogColorizer {
+	// Force color output when ColorModeAlways is set
+	switch config.Mode {
+	case ColorModeAlways:
+		color.NoColor = false
+	case ColorModeNever:
+		color.NoColor = true
+	case ColorModeAuto:
+		// Let the color package handle detection automatically
+	}
+
 	return &LogColorizer{
 		config: config,
 	}
@@ -124,8 +135,26 @@ func (lc *LogColorizer) colorizeAPILog(entry LogEntry) string {
 		return color.New(color.FgCyan).Sprint(s)
 	})
 
+	// Highlight CRD names and API groups
+	crdPattern := regexp.MustCompile(`([a-zA-Z0-9-]+\.[a-zA-Z0-9.-]+\.(com|io|sh|aws|k8s\.aws))`)
+	message = crdPattern.ReplaceAllStringFunc(message, func(s string) string {
+		return color.New(color.FgMagenta, color.Bold).Sprint(s)
+	})
+
+	// Highlight Kubernetes resource types in messages
+	k8sResourcePattern := regexp.MustCompile(`\b(CRD|CustomResourceDefinition|OpenAPI|spec|controller|webhook|admission)\b`)
+	message = k8sResourcePattern.ReplaceAllStringFunc(message, func(s string) string {
+		return color.New(color.FgYellow).Sprint(s)
+	})
+
+	// Highlight file paths and line numbers
+	filePathPattern := regexp.MustCompile(`([a-zA-Z0-9_-]+\.go):(\d+)`)
+	message = filePathPattern.ReplaceAllStringFunc(message, func(s string) string {
+		return color.New(color.FgHiBlack).Sprint(s)
+	})
+
 	// Highlight success messages
-	successPattern := regexp.MustCompile(`(success|successfully|created|updated|deleted)`)
+	successPattern := regexp.MustCompile(`(success|successfully|created|updated|deleted|Updating)`)
 	message = successPattern.ReplaceAllStringFunc(message, func(s string) string {
 		return color.New(color.FgGreen).Sprint(s)
 	})
@@ -168,7 +197,17 @@ func (lc *LogColorizer) colorizeAuditJSON(auditData map[string]interface{}) stri
 
 	// Apply colors to specific fields
 	if verb, ok := coloredData["verb"].(string); ok {
-		coloredData["verb"] = color.New(color.FgMagenta).Sprint(verb)
+		// Color verbs based on their type
+		verbColor := color.New(color.FgMagenta)
+		switch verb {
+		case "create", "update", "patch":
+			verbColor = color.New(color.FgGreen, color.Bold)
+		case "delete":
+			verbColor = color.New(color.FgRed, color.Bold)
+		case "get", "list", "watch":
+			verbColor = color.New(color.FgCyan)
+		}
+		coloredData["verb"] = verbColor.Sprint(verb)
 	}
 
 	if uri, ok := coloredData["requestURI"].(string); ok {
@@ -178,8 +217,70 @@ func (lc *LogColorizer) colorizeAuditJSON(auditData map[string]interface{}) stri
 	// Handle user information
 	if user, ok := coloredData["user"].(map[string]interface{}); ok {
 		if username, ok := user["username"].(string); ok {
-			user["username"] = color.New(color.FgYellow).Sprint(username)
+			// Color usernames based on type
+			usernameColor := color.New(color.FgYellow)
+			if strings.HasPrefix(username, "system:") {
+				usernameColor = color.New(color.FgCyan)
+			} else if strings.HasPrefix(username, "eks:") {
+				usernameColor = color.New(color.FgMagenta)
+			}
+			user["username"] = usernameColor.Sprint(username)
 		}
+
+		// Color groups
+		if groups, ok := user["groups"].([]interface{}); ok {
+			coloredGroups := make([]interface{}, len(groups))
+			for i, group := range groups {
+				if groupStr, ok := group.(string); ok {
+					groupColor := color.New(color.FgHiBlack)
+					if strings.Contains(groupStr, "system:") {
+						groupColor = color.New(color.FgBlue)
+					}
+					coloredGroups[i] = groupColor.Sprint(groupStr)
+				} else {
+					coloredGroups[i] = group
+				}
+			}
+			user["groups"] = coloredGroups
+		}
+	}
+
+	// Handle object reference
+	if objectRef, ok := coloredData["objectRef"].(map[string]interface{}); ok {
+		if resource, ok := objectRef["resource"].(string); ok {
+			objectRef["resource"] = color.New(color.FgCyan, color.Bold).Sprint(resource)
+		}
+		if namespace, ok := objectRef["namespace"].(string); ok {
+			objectRef["namespace"] = color.New(color.FgYellow).Sprint(namespace)
+		}
+		if name, ok := objectRef["name"].(string); ok {
+			objectRef["name"] = color.New(color.FgHiCyan).Sprint(name)
+		}
+	}
+
+	// Handle source IPs
+	if sourceIPs, ok := coloredData["sourceIPs"].([]interface{}); ok {
+		coloredIPs := make([]interface{}, len(sourceIPs))
+		for i, ip := range sourceIPs {
+			if ipStr, ok := ip.(string); ok {
+				coloredIPs[i] = color.New(color.FgHiYellow).Sprint(ipStr)
+			} else {
+				coloredIPs[i] = ip
+			}
+		}
+		coloredData["sourceIPs"] = coloredIPs
+	}
+
+	// Handle audit level
+	if level, ok := coloredData["level"].(string); ok {
+		levelColor := color.New(color.FgBlue)
+		switch level {
+		case "Request", "RequestResponse":
+			levelColor = color.New(color.FgGreen)
+		case "Metadata":
+			levelColor = color.New(color.FgBlue)
+		}
+		coloredData["level"] = levelColor.Sprint(level)
 	}
 
 	// Handle response status
@@ -293,19 +394,68 @@ func (lc *LogColorizer) colorizeAuthenticatorLog(entry LogEntry) string {
 		return color.New(color.FgYellow).Sprint(s)
 	})
 
-	// Highlight access granted/denied
-	accessPattern := regexp.MustCompile(`access (granted|denied)`)
-	message = accessPattern.ReplaceAllStringFunc(message, func(match string) string {
-		if strings.Contains(match, "granted") {
-			return color.New(color.FgGreen).Sprint(match)
-		}
-		return color.New(color.FgRed).Sprint(match)
-	})
-
 	// Highlight usernames
 	usernamePattern := regexp.MustCompile(`username="([^"]+)"`)
 	message = usernamePattern.ReplaceAllStringFunc(message, func(s string) string {
 		return color.New(color.FgCyan).Sprint(s)
+	})
+
+	// Highlight error messages and codes (only standalone words or specific patterns)
+	errorPattern := regexp.MustCompile(`\b(error|failed|failure|unable to|cannot|timeout|invalid|missing)\b|access (denied|granted)`)
+	message = errorPattern.ReplaceAllStringFunc(message, func(s string) string {
+		if strings.Contains(s, "granted") {
+			return color.New(color.FgGreen).Sprint(s)
+		}
+		return color.New(color.FgRed).Sprint(s)
+	})
+
+	// Highlight AWS error codes (handle escaped quotes)
+	awsErrorPattern := regexp.MustCompile(`\\"Code\\":\\"([^"]+)\\"`)
+	message = awsErrorPattern.ReplaceAllStringFunc(message, func(s string) string {
+		return color.New(color.FgRed, color.Bold).Sprint(s)
+	})
+
+	// Highlight AWS error types (handle escaped quotes)
+	awsErrorTypePattern := regexp.MustCompile(`\\"Type\\":\\"([^"]+)\\"`)
+	message = awsErrorTypePattern.ReplaceAllStringFunc(message, func(s string) string {
+		return color.New(color.FgRed).Sprint(s)
+	})
+
+	// Highlight HTTP status codes
+	httpStatusPattern := regexp.MustCompile(`\b(200|201|204|400|401|403|404|500|502|503)\b`)
+	message = httpStatusPattern.ReplaceAllStringFunc(message, func(s string) string {
+		statusCode := s
+		statusColor := color.New(color.FgGreen)
+		if statusCode[0] == '4' || statusCode[0] == '5' {
+			statusColor = color.New(color.FgRed, color.Bold)
+		}
+		return statusColor.Sprint(s)
+	})
+
+	// Highlight IP addresses and ports
+	ipPattern := regexp.MustCompile(`\b(\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}):(\d+)\b`)
+	message = ipPattern.ReplaceAllStringFunc(message, func(s string) string {
+		return color.New(color.FgHiYellow).Sprint(s)
+	})
+
+	// Highlight HTTP methods
+	methodPattern := regexp.MustCompile(`method=(GET|POST|PUT|DELETE|PATCH)`)
+	message = methodPattern.ReplaceAllStringFunc(message, func(s string) string {
+		return color.New(color.FgMagenta).Sprint(s)
+	})
+
+	// Highlight paths
+	pathPattern := regexp.MustCompile(`path=(/[^\s]*)`)
+	message = pathPattern.ReplaceAllStringFunc(message, func(s string) string {
+		return color.New(color.FgCyan).Sprint(s)
+	})
+
+	// Highlight log levels in the message
+	levelPattern := regexp.MustCompile(`level=(debug|info|warning|error|fatal)`)
+	message = levelPattern.ReplaceAllStringFunc(message, func(s string) string {
+		levelStr := strings.Split(s, "=")[1]
+		levelColor := getLevelColor(levelStr)
+		return fmt.Sprintf("level=%s", levelColor.Sprint(levelStr))
 	})
 
 	return fmt.Sprintf("%s [%s] [%s] %s", timestamp, level, component, message)
