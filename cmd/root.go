@@ -355,10 +355,17 @@ func processFilterPattern(pattern string, isIgnore bool, verbose bool) string {
 	var result string
 
 	// Check if pattern needs quoting (simple text search)
+	// Only avoid quoting for:
+	// - Already quoted patterns
+	// - JSON patterns (contain {})
+	// - Array patterns (contain [])
+	// - Optional patterns (contain ?)
+	// - Wildcard patterns (contain *)
+	// - Negation patterns (start with -)
 	needsQuoting := !strings.HasPrefix(pattern, "\"") && !strings.HasSuffix(pattern, "\"") &&
 		!strings.Contains(pattern, "{") && !strings.Contains(pattern, "[") &&
 		!strings.Contains(pattern, "?") && !strings.Contains(pattern, "*") &&
-		!strings.Contains(pattern, "-")
+		!strings.HasPrefix(pattern, "-")
 
 	if needsQuoting {
 		result = fmt.Sprintf("\"%s\"", pattern)

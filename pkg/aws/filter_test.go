@@ -22,10 +22,10 @@ func TestFilterPatternQuoting(t *testing.T) {
 			shouldQuote:    true,
 		},
 		{
-			name:           "text with hyphen should not be quoted",
+			name:           "text with hyphen should be quoted",
 			input:          "persistent-volume-binder",
-			expectedOutput: "persistent-volume-binder",
-			shouldQuote:    false,
+			expectedOutput: "\"persistent-volume-binder\"",
+			shouldQuote:    true,
 		},
 		{
 			name:           "already quoted text should not be double quoted",
@@ -64,7 +64,7 @@ func TestFilterPatternQuoting(t *testing.T) {
 			shouldQuote := !strings.HasPrefix(tt.input, "\"") && !strings.HasSuffix(tt.input, "\"") &&
 				!strings.Contains(tt.input, "{") && !strings.Contains(tt.input, "[") &&
 				!strings.Contains(tt.input, "?") && !strings.Contains(tt.input, "*") &&
-				!strings.Contains(tt.input, "-")
+				!strings.HasPrefix(tt.input, "-")
 
 			assert.Equal(t, tt.shouldQuote, shouldQuote, "Quote detection should match expected")
 
@@ -118,7 +118,7 @@ func TestIgnoreFilterPatternQuoting(t *testing.T) {
 			shouldQuote := !strings.HasPrefix(tt.input, "\"") && !strings.HasSuffix(tt.input, "\"") &&
 				!strings.Contains(tt.input, "{") && !strings.Contains(tt.input, "[") &&
 				!strings.Contains(tt.input, "?") && !strings.Contains(tt.input, "*") &&
-				!strings.Contains(tt.input, "-")
+				!strings.HasPrefix(tt.input, "-")
 
 			assert.Equal(t, tt.shouldQuote, shouldQuote, "Quote detection should match expected")
 
@@ -176,7 +176,7 @@ func TestCombinedFilterPatterns(t *testing.T) {
 				if !strings.HasPrefix(tt.includePattern, "\"") && !strings.HasSuffix(tt.includePattern, "\"") {
 					if !strings.Contains(tt.includePattern, "{") && !strings.Contains(tt.includePattern, "[") &&
 						!strings.Contains(tt.includePattern, "?") && !strings.Contains(tt.includePattern, "*") &&
-						!strings.Contains(tt.includePattern, "-") {
+						!strings.HasPrefix(tt.includePattern, "-") {
 						combinedPattern = "\"" + tt.includePattern + "\""
 					} else {
 						combinedPattern = tt.includePattern
@@ -192,7 +192,7 @@ func TestCombinedFilterPatterns(t *testing.T) {
 				if !strings.HasPrefix(tt.ignorePattern, "\"") && !strings.HasSuffix(tt.ignorePattern, "\"") {
 					if !strings.Contains(tt.ignorePattern, "{") && !strings.Contains(tt.ignorePattern, "[") &&
 						!strings.Contains(tt.ignorePattern, "?") && !strings.Contains(tt.ignorePattern, "*") &&
-						!strings.Contains(tt.ignorePattern, "-") {
+						!strings.HasPrefix(tt.ignorePattern, "-") {
 						ignorePattern = "-\"" + tt.ignorePattern + "\""
 					} else {
 						ignorePattern = "-" + tt.ignorePattern
@@ -285,7 +285,7 @@ func processFilterPattern(pattern string, isIgnore bool) string {
 	needsQuoting := !strings.HasPrefix(pattern, "\"") && !strings.HasSuffix(pattern, "\"") &&
 		!strings.Contains(pattern, "{") && !strings.Contains(pattern, "[") &&
 		!strings.Contains(pattern, "?") && !strings.Contains(pattern, "*") &&
-		!strings.Contains(pattern, "-")
+		!strings.HasPrefix(pattern, "-")
 
 	if needsQuoting {
 		result = fmt.Sprintf("\"%s\"", pattern)
