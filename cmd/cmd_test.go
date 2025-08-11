@@ -222,7 +222,7 @@ func TestFilterPatternHandling(t *testing.T) {
 				if !strings.HasPrefix(expectedPattern, "\"") && !strings.HasSuffix(expectedPattern, "\"") &&
 					!strings.Contains(expectedPattern, "{") && !strings.Contains(expectedPattern, "[") &&
 					!strings.Contains(expectedPattern, "?") && !strings.Contains(expectedPattern, "*") &&
-					!strings.Contains(expectedPattern, "-") {
+					!strings.HasPrefix(expectedPattern, "-") {
 					expectedPattern = fmt.Sprintf("\"%s\"", expectedPattern)
 				}
 				assert.Equal(t, expectedPattern, *fp)
