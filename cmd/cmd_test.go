@@ -126,6 +126,7 @@ func TestLogTypesCommandOutput(t *testing.T) {
 	assert.Contains(t, output, "kcm")
 	assert.Contains(t, output, "ccm")
 	assert.Contains(t, output, "scheduler")
+	assert.Contains(t, output, "Not all log types may be available")
 }
 
 // TestRootCommandFlags tests the flags of the root command

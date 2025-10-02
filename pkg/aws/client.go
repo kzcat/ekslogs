@@ -3,7 +3,6 @@ package aws
 import (
 	"context"
 	"fmt"
-	"sort"
 	"strings"
 	"sync"
 	"time"
@@ -118,28 +117,9 @@ func (c *EKSLogsClient) GetLogs(ctx context.Context, clusterName string, logType
 		normalizedLogTypes = append(normalizedLogTypes, log.NormalizeLogType(logType))
 	}
 
+	// Filter log groups by log types if specified
 	if len(logTypes) > 0 {
-		availableLogTypes, err := c.getAvailableLogTypes(ctx, logGroups)
-		if err != nil {
-			return fmt.Errorf("failed to get available log types: %w", err)
-		}
-
-		var validLogTypes []string
-		for _, logType := range normalizedLogTypes {
-			if contains(availableLogTypes, logType) {
-				validLogTypes = append(validLogTypes, logType)
-			}
-		}
-
-		if len(validLogTypes) == 0 {
-			sort.Strings(availableLogTypes)
-			return fmt.Errorf(`no logs found for specified types: %v
-Available log types for cluster '%s': %s
-Run 'ekslogs logtypes' for more information about available log types`,
-				logTypes, clusterName, log.GetLogTypeDescription(availableLogTypes))
-		}
-
-		logGroups = c.filterLogGroupsByTypes(ctx, logGroups, validLogTypes)
+		logGroups = c.filterLogGroupsByTypes(ctx, logGroups, normalizedLogTypes)
 	}
 
 	var wg sync.WaitGroup
@@ -154,20 +134,7 @@ Run 'ekslogs logtypes' for more information about available log types`,
 			var getLogsErr error
 
 			if len(logTypes) > 0 {
-				availableLogTypes, err := c.getAvailableLogTypes(ctx, []string{lg})
-				if err != nil {
-					errChan <- fmt.Errorf("warning: failed to get available log types for log group '%s': %v", lg, err)
-					return
-				}
-
-				var validLogTypes []string
-				for _, logType := range normalizedLogTypes {
-					if contains(availableLogTypes, logType) {
-						validLogTypes = append(validLogTypes, logType)
-					}
-				}
-
-				currentLogStreamNames, getLogsErr = c.getLogStreamsForTypes(ctx, lg, validLogTypes)
+				currentLogStreamNames, getLogsErr = c.getLogStreamsForTypes(ctx, lg, normalizedLogTypes)
 				if getLogsErr != nil {
 					errChan <- fmt.Errorf("warning: failed to get log streams for log group '%s': %v", lg, getLogsErr)
 					return
@@ -306,37 +273,8 @@ Run 'ekslogs logtypes' for more information about available log types`,
 	return nil
 }
 
-func (c *EKSLogsClient) getAvailableLogTypes(ctx context.Context, logGroups []string) ([]string, error) {
-	logTypeSet := make(map[string]bool)
-
-	for _, logGroup := range logGroups {
-		resp, err := c.logsClient.DescribeLogStreams(ctx, &cloudwatchlogs.DescribeLogStreamsInput{
-			LogGroupName: aws.String(logGroup),
-			Limit:        aws.Int32(50), // Check first 50 streams
-		})
-		if err != nil {
-			continue // Continue processing other log groups even if there's an error
-		}
-
-		for _, stream := range resp.LogStreams {
-			if stream.LogStreamName != nil {
-				logType := log.ExtractLogTypeFromStreamName(*stream.LogStreamName)
-				if logType != "" {
-					logTypeSet[logType] = true
-				}
-			}
-		}
-	}
-
-	var logTypes []string
-	for logType := range logTypeSet {
-		logTypes = append(logTypes, logType)
-	}
-
-	return logTypes, nil
-}
-
 func (c *EKSLogsClient) filterLogGroupsByTypes(ctx context.Context, logGroups []string, logTypes []string) []string {
+	// For EKS, all log types are in the same log group, so no filtering needed
 	return logGroups
 }
 

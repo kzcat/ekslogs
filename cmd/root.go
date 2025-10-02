@@ -253,6 +253,8 @@ Examples:
 		fmt.Println("  scheduler     - Scheduler logs (kube-scheduler)")
 		fmt.Println("                  Alias: sched")
 		fmt.Println()
+		fmt.Println("Note: Not all log types may be available for every cluster.")
+		fmt.Println("Control plane logging must be enabled in the EKS console for logs to be available.")
 		fmt.Println("If no log types are specified, all available log types will be retrieved.")
 	},
 }
