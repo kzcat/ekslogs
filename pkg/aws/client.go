@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"strings"
 	"sync"
+	"sync/atomic"
 	"time"
 
 	"github.com/aws/aws-sdk-go-v2/aws"
@@ -117,6 +118,13 @@ func (c *EKSLogsClient) GetLogs(ctx context.Context, clusterName string, logType
 		normalizedLogTypes = append(normalizedLogTypes, log.NormalizeLogType(logType))
 	}
 
+	ctx, cancel := context.WithCancel(ctx)
+	defer cancel()
+
+	limitEnabled := limit > 0
+	var totalEvents atomic.Int32
+	var cancelOnce sync.Once
+
 	// Filter log groups by log types if specified
 	if len(logTypes) > 0 {
 		logGroups = c.filterLogGroupsByTypes(ctx, logGroups, normalizedLogTypes)
@@ -130,36 +138,35 @@ func (c *EKSLogsClient) GetLogs(ctx context.Context, clusterName string, logType
 		go func(lg string) {
 			defer wg.Done()
 
+			if ctx.Err() != nil {
+				return
+			}
+
 			var currentLogStreamNames []string
 			var getLogsErr error
 
 			if len(logTypes) > 0 {
 				currentLogStreamNames, getLogsErr = c.getLogStreamsForTypes(ctx, lg, normalizedLogTypes)
 				if getLogsErr != nil {
+					if ctx.Err() != nil {
+						return
+					}
 					errChan <- fmt.Errorf("warning: failed to get log streams for log group '%s': %v", lg, getLogsErr)
 					return
 				}
 			} else {
-				resp, err := c.logsClient.DescribeLogStreams(ctx, &cloudwatchlogs.DescribeLogStreamsInput{
-					LogGroupName: aws.String(lg),
-					Limit:        aws.Int32(50), // CloudWatch Logs limit
-					OrderBy:      cwt.OrderBy("LastEventTime"),
-					Descending:   aws.Bool(true),
-				})
-				if err != nil {
-					errChan <- fmt.Errorf("warning: failed to describe log streams for log group '%s': %v", lg, err)
-					return
-				}
-				for _, stream := range resp.LogStreams {
-					if stream.LogStreamName != nil {
-						currentLogStreamNames = append(currentLogStreamNames, *stream.LogStreamName)
+				currentLogStreamNames, getLogsErr = c.listLogStreamNames(ctx, lg)
+				if getLogsErr != nil {
+					if ctx.Err() != nil {
+						return
 					}
+					errChan <- fmt.Errorf("warning: failed to describe log streams for log group '%s': %v", lg, getLogsErr)
+					return
 				}
 			}
 
 			input := &cloudwatchlogs.FilterLogEventsInput{
 				LogGroupName: aws.String(lg),
-				Limit:        aws.Int32(limit),
 			}
 			if len(currentLogStreamNames) > 0 {
 				input.LogStreamNames = currentLogStreamNames
@@ -180,12 +187,13 @@ func (c *EKSLogsClient) GetLogs(ctx context.Context, clusterName string, logType
 
 			// Use pagination to retrieve all log events
 			var nextToken *string
-			var totalEvents int32 = 0
 			var pageCount = 0
 
 			// Set a reasonable page size for each API call
 			pageSize := int32(1000)
-			input.Limit = aws.Int32(pageSize)
+			if limitEnabled && limit < pageSize {
+				pageSize = limit
+			}
 
 			if c.verbose {
 				fmt.Printf("Retrieving logs from %s\n", lg)
@@ -195,13 +203,37 @@ func (c *EKSLogsClient) GetLogs(ctx context.Context, clusterName string, logType
 			}
 
 			for {
+				if ctx.Err() != nil {
+					return
+				}
+
+				if limitEnabled {
+					remaining := limit - totalEvents.Load()
+					if remaining <= 0 {
+						cancelOnce.Do(cancel)
+						return
+					}
+					if remaining < pageSize {
+						input.Limit = aws.Int32(remaining)
+					} else {
+						input.Limit = aws.Int32(pageSize)
+					}
+				} else {
+					input.Limit = aws.Int32(pageSize)
+				}
+
 				pageCount++
 				if nextToken != nil {
 					input.NextToken = nextToken
+				} else {
+					input.NextToken = nil
 				}
 
 				resp, err := c.logsClient.FilterLogEvents(ctx, input)
 				if err != nil {
+					if ctx.Err() != nil {
+						return
+					}
 					if c.verbose {
 						fmt.Printf("Error details for log group '%s': %v\n", lg, err)
 						fmt.Printf("Request parameters: StartTime=%v, EndTime=%v, FilterPattern=%v\n",
@@ -216,14 +248,9 @@ func (c *EKSLogsClient) GetLogs(ctx context.Context, clusterName string, logType
 						pageCount, len(resp.Events), resp.NextToken != nil)
 				}
 
-				eventsProcessed := 0
-
 				for _, event := range resp.Events {
 					if event.Timestamp != nil && event.LogStreamName != nil && event.Message != nil {
-						// Check if we've reached the overall limit (limit=0 means unlimited)
-						if limit > 0 && totalEvents >= limit {
-							break
-						}
+						var newTotal int32
 
 						entry := log.LogEntry{
 							Timestamp: time.UnixMilli(*event.Timestamp),
@@ -233,17 +260,23 @@ func (c *EKSLogsClient) GetLogs(ctx context.Context, clusterName string, logType
 							LogGroup:  lg,
 							LogStream: *event.LogStreamName,
 						}
+
+						if limitEnabled {
+							newTotal = totalEvents.Add(1)
+							if newTotal > limit {
+								totalEvents.Add(-1)
+								cancelOnce.Do(cancel)
+								return
+							}
+						}
+
 						printFunc(entry) // Call the print function directly
 
-						// Increment the counters
-						totalEvents++
-						eventsProcessed++
+						if limitEnabled && newTotal >= limit {
+							cancelOnce.Do(cancel)
+							return
+						}
 					}
-				}
-
-				// Check if we've reached the overall limit (limit=0 means unlimited)
-				if limit > 0 && totalEvents >= limit {
-					break
 				}
 
 				// If no more pages, break the loop
@@ -278,24 +311,49 @@ func (c *EKSLogsClient) filterLogGroupsByTypes(ctx context.Context, logGroups []
 	return logGroups
 }
 
+func (c *EKSLogsClient) listLogStreamNames(ctx context.Context, logGroup string) ([]string, error) {
+	var nextToken *string
+	var streamNames []string
+
+	for {
+		resp, err := c.logsClient.DescribeLogStreams(ctx, &cloudwatchlogs.DescribeLogStreamsInput{
+			LogGroupName: aws.String(logGroup),
+			Limit:        aws.Int32(50), // Maximum limit for CloudWatch Logs
+			OrderBy:      cwt.OrderBy("LastEventTime"),
+			Descending:   aws.Bool(true), // Get the most recent streams first
+			NextToken:    nextToken,
+		})
+		if err != nil {
+			return nil, err
+		}
+
+		for _, stream := range resp.LogStreams {
+			if stream.LogStreamName != nil {
+				streamNames = append(streamNames, *stream.LogStreamName)
+			}
+		}
+
+		if resp.NextToken == nil {
+			break
+		}
+
+		nextToken = resp.NextToken
+	}
+
+	return streamNames, nil
+}
+
 func (c *EKSLogsClient) getLogStreamsForTypes(ctx context.Context, logGroup string, logTypes []string) ([]string, error) {
-	resp, err := c.logsClient.DescribeLogStreams(ctx, &cloudwatchlogs.DescribeLogStreamsInput{
-		LogGroupName: aws.String(logGroup),
-		Limit:        aws.Int32(50), // Maximum limit for CloudWatch Logs
-		OrderBy:      cwt.OrderBy("LastEventTime"),
-		Descending:   aws.Bool(true), // Get the most recent streams first
-	})
+	streamNames, err := c.listLogStreamNames(ctx, logGroup)
 	if err != nil {
 		return nil, err
 	}
 
 	var matchingStreams []string
-	for _, stream := range resp.LogStreams {
-		if stream.LogStreamName != nil {
-			streamLogType := log.ExtractLogTypeFromStreamName(*stream.LogStreamName)
-			if contains(logTypes, streamLogType) {
-				matchingStreams = append(matchingStreams, *stream.LogStreamName)
-			}
+	for _, streamName := range streamNames {
+		streamLogType := log.ExtractLogTypeFromStreamName(streamName)
+		if contains(logTypes, streamLogType) {
+			matchingStreams = append(matchingStreams, streamName)
 		}
 	}
 
@@ -327,7 +385,7 @@ func (c *EKSLogsClient) TailLogs(ctx context.Context, clusterName string, logTyp
 
 	lastTimestamp := time.Now().Add(-1 * time.Minute) // Start from 1 minute ago
 	var mu sync.Mutex                                 // Mutex to protect lastTimestamp and prevent duplicate prints
-	seenEntries := make(map[string]bool)              // Track seen log entries to prevent duplicates
+	seenEntries := make(map[string]time.Time)         // Track seen log entries to prevent duplicates
 
 	if c.verbose {
 		fmt.Printf("Starting tail mode with interval: %v\n", interval)
@@ -356,19 +414,25 @@ func (c *EKSLogsClient) TailLogs(ctx context.Context, clusterName string, logTyp
 				entryKey := fmt.Sprintf("%d-%s-%s", entry.Timestamp.UnixNano(), entry.LogStream, entry.Message)
 
 				// Skip if we've already seen this entry
-				if seenEntries[entryKey] {
+				if _, exists := seenEntries[entryKey]; exists {
 					return
 				}
 
-				// Only print entries newer than our last timestamp
-				if entry.Timestamp.After(lastTimestamp) {
-					log.PrintLog(entry, messageOnly, colorConfig)
-					seenEntries[entryKey] = true
-					lastTimestamp = entry.Timestamp
+				// Only print entries newer than or equal to our last timestamp
+				if entry.Timestamp.Before(lastTimestamp) {
+					return
 				}
+
+				log.PrintLog(entry, messageOnly, colorConfig)
+				seenEntries[entryKey] = entry.Timestamp
+				lastTimestamp = entry.Timestamp
 			}
 
-			err := c.GetLogs(ctx, clusterName, logTypes, &lastTimestamp, &now, filterPattern, 100, printAndTrackTimestamp)
+			mu.Lock()
+			start := lastTimestamp
+			mu.Unlock()
+
+			err := c.GetLogs(ctx, clusterName, logTypes, &start, &now, filterPattern, 100, printAndTrackTimestamp)
 			if err != nil {
 				// If context was cancelled during GetLogs execution, exit gracefully
 				if ctx.Err() == context.Canceled {
@@ -380,8 +444,13 @@ func (c *EKSLogsClient) TailLogs(ctx context.Context, clusterName string, logTyp
 
 			// Clean up old entries from the seen map to prevent memory growth
 			mu.Lock()
-			if len(seenEntries) > 1000 {
-				seenEntries = make(map[string]bool)
+			if len(seenEntries) > 2000 {
+				cutoff := lastTimestamp.Add(-2 * time.Minute)
+				for key, ts := range seenEntries {
+					if ts.Before(cutoff) {
+						delete(seenEntries, key)
+					}
+				}
 			}
 			mu.Unlock()
 		}
